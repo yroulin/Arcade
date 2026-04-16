@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <title>DINOSAUR HOLE GAME LIFE – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000200;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      overflow: hidden;
+      font-family: 'Silkscreen', cursive;
+      background-image:
+        linear-gradient(to right, rgba(77,255,145,0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(77,255,145,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    #wrapper {
+      display: flex; flex-direction: column;
+      align-items: center; width: 100%;
+    }
+
+    canvas {
+      display: block;
+      max-width: 100vw;
+      border: 1px solid rgba(77,255,145,0.25);
+      box-shadow: 0 0 30px rgba(77,255,145,0.15), 0 0 60px rgba(77,255,145,0.07);
+    }
+
+    /* Touch controls */
+    #touch-wrap {
+      display: none;
+      width: 640px; max-width: 100vw;
+      padding: 8px 0; gap: 8px;
+      justify-content: space-between;
+    }
+    @media (pointer: coarse), (max-width: 660px) { #touch-wrap { display: flex; } }
+
+    .tch {
+      flex: 1; padding: 16px 0; text-align: center;
+      background: rgba(77,255,145,0.07);
+      border: 2px solid rgba(77,255,145,0.3);
+      color: #4dff91; font-family: 'Silkscreen', cursive;
+      font-size: 18px; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation; user-select: none;
+      transition: background 0.1s, box-shadow 0.1s;
+    }
+    .tch.on, .tch:active {
+      background: rgba(77,255,145,0.25);
+      box-shadow: 0 0 14px rgba(77,255,145,0.5);
+    }
+    .tch-jump {
+      background: rgba(215,126,255,0.07);
+      border-color: rgba(215,126,255,0.3);
+      color: #d77eff;
+    }
+    .tch-jump.on, .tch-jump:active {
+      background: rgba(215,126,255,0.25);
+      box-shadow: 0 0 14px rgba(215,126,255,0.5);
+    }
+
+    #back-btn {
+      position: fixed; top: 14px; left: 14px; z-index: 100;
+      background: rgba(0,2,0,0.85);
+      border: 1px solid rgba(77,255,145,0.35);
+      color: #4dff91; font-family: 'Silkscreen', cursive;
+      font-size: 9px; padding: 7px 12px;
+      cursor: pointer; letter-spacing: 2px; text-decoration: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #back-btn:hover {
+      border-color: #4dff91;
+      box-shadow: 0 0 10px rgba(77,255,145,0.4);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+<a href="index.html" id="back-btn" aria-label="Back to Nico's Arcade Room">← BACK</a>
+
+<div id="wrapper">
+  <canvas id="gc" width="640" height="420" aria-label="Dinosaur Hole Game Life canvas"></canvas>
+  <div id="touch-wrap">
+    <div class="tch" id="tc-left"  aria-label="Move left">◀</div>
+    <div class="tch tch-jump" id="tc-jump" aria-label="Jump">▲ JUMP</div>
+    <div class="tch" id="tc-right" aria-label="Move right">▶</div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+// ── Canvas & constants ────────────────────────────────────────────────────────
+const cv  = document.getElementById('gc');
+const ctx = cv.getContext('2d');
+const CW  = cv.width;   // 640
+const CH  = cv.height;  // 420
+const HH  = 42;         // HUD height
+const GH  = CH - HH;    // game area height = 378
+
+// High-DPI scale
+const DPR = window.devicePixelRatio || 1;
+if (DPR > 1) {
+  cv.width  = CW * DPR; cv.height = CH * DPR;
+  cv.style.width = CW + 'px'; cv.style.height = CH + 'px';
+  ctx.scale(DPR, DPR);
+}
+
+// Physics / dimensions
+const GRAVITY   = 920;
+const JUMP_VY   = -430;
+const RUN_SPD   = 215;
+const GROUND_Y  = HH + 315;  // canvas y of ground surface = 357
+const DW = 36, DH = 52;      // dino size
+const GATE_W = 26, GATE_H = 100; // gate wall size (sits on ground)
+const GATE_Y  = GROUND_Y - GATE_H;  // gate top y
+
+// ── State machine ─────────────────────────────────────────────────────────────
+const ST = { TITLE:0, PLAYING:1, MATH:2, LEVEL_CLEAR:3, GAME_OVER:4, WIN:5 };
+let st = ST.TITLE;
+
+// ── Level data ────────────────────────────────────────────────────────────────
+// ground: array of {x, w}  (all at GROUND_Y, height = 65px)
+// gateXs: world X of each gate's left edge
+// goalX: world X of goal flag
+const LEVELS = [
+  {
+    name: 'FOSSIL FIELD', color: '#4dff91',
+    ops: ['+'], numRange: [1, 12],
+    bg: '#000e05', mtnCol: '#001a08', groundCol: '#0d3d1a', tileCol: '#145226',
+    ground: [{x:0,w:520},{x:600,w:500},{x:1180,w:500},{x:1760,w:500},{x:2340,w:420}],
+    gateXs: [370, 940, 1520],
+    goalX: 2640, worldW: 2900,
+  },
+  {
+    name: 'LAVA PITS', color: '#ff6e4d',
+    ops: ['-'], numRange: [2, 18],
+    bg: '#120200', mtnCol: '#2a0600', groundCol: '#5c1400', tileCol: '#7a2000',
+    ground: [{x:0,w:500},{x:590,w:480},{x:1160,w:480},{x:1730,w:480},{x:2300,w:380}],
+    gateXs: [350, 910, 1480, 1980],
+    goalX: 2560, worldW: 2820,
+  },
+  {
+    name: 'METEOR PEAKS', color: '#d77eff',
+    ops: ['+', '-'], numRange: [1, 20],
+    bg: '#0a0016', mtnCol: '#180030', groundCol: '#3a0060', tileCol: '#510080',
+    ground: [{x:0,w:500},{x:610,w:460},{x:1160,w:460},{x:1730,w:460},{x:2290,w:360}],
+    gateXs: [340, 900, 1460, 2000],
+    goalX: 2530, worldW: 2790,
+  },
+  {
+    name: 'CRYSTAL CAVE', color: '#70f0f3',
+    ops: ['×'], numRange: [2, 9],
+    bg: '#00100e', mtnCol: '#001a18', groundCol: '#003c38', tileCol: '#005450',
+    ground: [{x:0,w:500},{x:620,w:440},{x:1160,w:440},{x:1700,w:440},{x:2240,w:340}],
+    gateXs: [340, 880, 1420, 1950],
+    goalX: 2470, worldW: 2720,
+  },
+  {
+    name: 'DINO SUMMIT', color: '#ffd84d',
+    ops: ['+', '-', '×'], numRange: [1, 12],
+    bg: '#0c0c00', mtnCol: '#1c1c00', groundCol: '#3d3d00', tileCol: '#565600',
+    ground: [{x:0,w:500},{x:630,w:420},{x:1160,w:420},{x:1690,w:420},{x:2220,w:320}],
+    gateXs: [330, 860, 1390, 1920],
+    goalX: 2430, worldW: 2680,
+  },
+];
+
+// ── Persistent state ──────────────────────────────────────────────────────────
+let score = 0, lives = 3, levelIdx = 0;
+let hiScore = parseInt(localStorage.getItem('dh_hi') || '0');
+
+// ── Current level runtime data ────────────────────────────────────────────────
+let gates      = [];   // {x, problem:{q,ans}, open:bool, openAnim:0..1}
+let goalX      = 0;
+let goalReached = false;
+
+// ── Player ────────────────────────────────────────────────────────────────────
+const pl = {
+  x: 60, y: GROUND_Y - DH,  // world X, canvas Y
+  vx: 0, vy: 0,
+  onGround: false,
+  facing: 1,   // 1=right, -1=left
+  frame: 0, ft: 0,
+  inv: 0,      // invincibility timer after hole
+  dead: false,
+};
+
+// ── Math puzzle state ─────────────────────────────────────────────────────────
+let mathGate    = null;   // gate object being solved
+let mathChoices = [];     // 4 numbers
+let mathWrong   = 0;      // consecutive wrong count
+let wrongFlash  = 0;      // wrong answer flash timer
+let rightFlash  = 0;      // correct answer flash timer
+let wrongIdx    = -1;     // which button was wrong
+let triesLeft   = 3;      // tries before penalty on this gate
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+let camX = 0;  // world X at screen left edge
+
+// ── Stars ─────────────────────────────────────────────────────────────────────
+const stars = Array.from({length: 80}, () => ({
+  x: Math.random() * CW * 3,
+  y: HH + Math.random() * GH * 0.5,
+  r: Math.random() * 1.2 + 0.3,
+  spd: Math.random() * 0.4 + 0.1,  // parallax speed factor
+}));
+
+// ── Particles ─────────────────────────────────────────────────────────────────
+let particles = [];
+
+// ── Collectibles (math hints floating above platforms) ────────────────────────
+let gems = [];  // {x, y, col, collected}
+
+// ── Audio ─────────────────────────────────────────────────────────────────────
+let _ac = null;
+function getAC() { if (!_ac) _ac = new (window.AudioContext || window.webkitAudioContext)(); return _ac; }
+function unlockAudio() { if (_ac) _ac.resume(); }
+
+function beep(freq, dur, type='square', vol=0.14) {
+  try {
+    const a=getAC(), o=a.createOscillator(), g=a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.type=type; o.frequency.setValueAtTime(freq, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(freq*0.3, a.currentTime+dur);
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime+dur);
+    o.start(); o.stop(a.currentTime+dur);
+  } catch(_) {}
+}
+function sfxJump()     { beep(320, 0.12, 'square', 0.12); }
+function sfxWrong()    { beep(150, 0.25, 'sawtooth', 0.18); }
+function sfxRight()    { [523,659,784].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.15),i*60)); }
+function sfxFall()     { beep(200, 0.3, 'sawtooth', 0.2); }
+function sfxLevelUp()  { [392,494,587,784].forEach((f,i)=>setTimeout(()=>beep(f,0.14,'square',0.16),i*80)); }
+function sfxGateOpen() { beep(880, 0.18, 'triangle', 0.15); }
+function sfxGoal()     { [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'triangle',0.2),i*70)); }
+function sfxGemPick()  { beep(1200, 0.08, 'triangle', 0.1); }
+
+// ── Input ─────────────────────────────────────────────────────────────────────
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  unlockAudio();
+  if (['Space','ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault();
+
+  if (st === ST.TITLE && (e.code==='Space'||e.code==='Enter')) startGame();
+  if (st === ST.GAME_OVER && (e.code==='Space'||e.code==='Enter')) { st=ST.TITLE; }
+  if (st === ST.WIN && (e.code==='Space'||e.code==='Enter')) { st=ST.TITLE; }
+  if (st === ST.LEVEL_CLEAR && (e.code==='Space'||e.code==='Enter')) nextLevel();
+
+  // Math answers via keyboard 1-4
+  if (st === ST.MATH) {
+    if (e.code==='Digit1') chooseMath(0);
+    if (e.code==='Digit2') chooseMath(1);
+    if (e.code==='Digit3') chooseMath(2);
+    if (e.code==='Digit4') chooseMath(3);
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Touch controls
+const T = { left:false, right:false, jump:false };
+function bindTch(id, key) {
+  const el = document.getElementById(id);
+  el.addEventListener('touchstart', e => {
+    e.preventDefault(); T[key]=true; el.classList.add('on'); unlockAudio();
+    if (st===ST.TITLE) startGame();
+    if (st===ST.GAME_OVER) st=ST.TITLE;
+    if (st===ST.WIN) st=ST.TITLE;
+    if (st===ST.LEVEL_CLEAR) nextLevel();
+  }, {passive:false});
+  el.addEventListener('touchend',   e => { e.preventDefault(); T[key]=false; el.classList.remove('on'); }, {passive:false});
+  el.addEventListener('touchcancel', () => { T[key]=false; el.classList.remove('on'); });
+}
+bindTch('tc-left',  'left');
+bindTch('tc-right', 'right');
+bindTch('tc-jump',  'jump');
+
+// Canvas click for math buttons
+cv.addEventListener('click', e => {
+  if (st !== ST.MATH) return;
+  const rect = cv.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / (rect.width / CW);
+  const my = (e.clientY - rect.top)  / (rect.height / CH);
+  getMathButtonRects().forEach((r, i) => {
+    if (mx>=r.x && mx<=r.x+r.w && my>=r.y && my<=r.y+r.h) chooseMath(i);
+  });
+});
+cv.addEventListener('touchstart', e => {
+  if (st !== ST.MATH) return;
+  unlockAudio();
+  e.preventDefault();
+  const rect = cv.getBoundingClientRect();
+  const touch = e.changedTouches[0];
+  const mx = (touch.clientX - rect.left) / (rect.width / CW);
+  const my = (touch.clientY - rect.top)  / (rect.height / CH);
+  getMathButtonRects().forEach((r, i) => {
+    if (mx>=r.x && mx<=r.x+r.w && my>=r.y && my<=r.y+r.h) chooseMath(i);
+  });
+}, {passive:false});
+
+// ── Math problem generator ────────────────────────────────────────────────────
+function genProblem(ops, range) {
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  const [lo, hi] = range;
+  let a, b, ans;
+
+  if (op === '+') {
+    a = rnd(lo, hi); b = rnd(lo, hi); ans = a + b;
+    return { q: `${a} + ${b} = ?`, ans, op };
+  } else if (op === '-') {
+    a = rnd(lo, hi); b = rnd(lo, a); ans = a - b;
+    return { q: `${a} - ${b} = ?`, ans, op };
+  } else if (op === '×') {
+    a = rnd(1, 10); b = rnd(1, 10); ans = a * b;
+    return { q: `${a} × ${b} = ?`, ans, op };
+  } else {
+    b = rnd(2, 9); ans = rnd(1, 10); a = b * ans;
+    return { q: `${a} ÷ ${b} = ?`, ans, op };
+  }
+}
+
+function genChoices(ans) {
+  const pool = new Set([ans]);
+  while (pool.size < 4) {
+    const delta = Math.floor(Math.random() * 10) + 1;
+    const c = ans + (Math.random() < 0.5 ? delta : -delta);
+    if (c >= 0 && c !== ans) pool.add(c);
+  }
+  return [...pool].sort(() => Math.random() - 0.5);
+}
+
+function rnd(lo, hi) { return lo + Math.floor(Math.random() * (hi - lo + 1)); }
+
+// Math button layout (4 boxes in a 2×2 grid centered on canvas)
+function getMathButtonRects() {
+  const bw = 180, bh = 60, gap = 14;
+  const totalW = bw*2 + gap, totalH = bh*2 + gap;
+  const ox = (CW - totalW) / 2;
+  const oy = CH / 2 - 14;
+  return [
+    {x: ox,        y: oy,        w: bw, h: bh},
+    {x: ox+bw+gap, y: oy,        w: bw, h: bh},
+    {x: ox,        y: oy+bh+gap, w: bw, h: bh},
+    {x: ox+bw+gap, y: oy+bh+gap, w: bw, h: bh},
+  ];
+}
+
+// ── Game init ─────────────────────────────────────────────────────────────────
+function startGame() {
+  score = 0; lives = 3; levelIdx = 0;
+  st = ST.PLAYING;
+  initLevel();
+}
+
+function initLevel() {
+  const lv = LEVELS[levelIdx];
+  // Build gates with generated problems
+  gates = lv.gateXs.map(gx => ({
+    x: gx,
+    problem: genProblem(lv.ops, lv.numRange),
+    open: false,
+    openAnim: 0,   // 0=closed, 1=fully open
+    choices: null, // filled when player approaches
+  }));
+  goalX      = lv.goalX;
+  goalReached = false;
+  camX       = 0;
+
+  // Reset player
+  pl.x = 80; pl.y = GROUND_Y - DH;
+  pl.vx = 0; pl.vy = 0;
+  pl.onGround = true;
+  pl.facing = 1;
+  pl.frame = 0; pl.ft = 0;
+  pl.inv = 0; pl.dead = false;
+
+  mathGate = null;
+  mathChoices = [];
+  wrongFlash = 0; rightFlash = 0; wrongIdx = -1; triesLeft = 3;
+  particles = [];
+
+  // Scatter gem collectibles on platforms (for extra score)
+  gems = [];
+  lv.ground.forEach(seg => {
+    const count = Math.floor(seg.w / 120);
+    for (let i = 0; i < count; i++) {
+      gems.push({
+        x: seg.x + 60 + i * 120 + rnd(0, 30),
+        y: GROUND_Y - 80,
+        col: lv.color,
+        collected: false,
+      });
+    }
+  });
+}
+
+function nextLevel() {
+  levelIdx++;
+  if (levelIdx >= LEVELS.length) { st = ST.WIN; return; }
+  st = ST.PLAYING;
+  initLevel();
+}
+
+function respawnPlayer() {
+  // Find the platform segment the player should respawn on
+  // (the leftmost gate not yet opened, or start)
+  const lv = LEVELS[levelIdx];
+  let spawnX = 80;
+  // Find last opened gate — respawn just before next unopened gate
+  for (let i = 0; i < gates.length; i++) {
+    if (!gates[i].open) {
+      // Respawn on the platform before this gate
+      const seg = lv.ground.find(s => s.x <= gates[i].x - 50 && s.x + s.w >= gates[i].x);
+      if (seg) spawnX = Math.max(seg.x + 40, gates[i].x - 120);
+      break;
+    }
+    if (gates[i].open) spawnX = gates[i].x + GATE_W + 40;
+  }
+
+  pl.x = spawnX;
+  pl.y = GROUND_Y - DH;
+  pl.vx = 0; pl.vy = 0;
+  pl.onGround = true;
+  pl.inv = 2.5;
+  pl.dead = false;
+}
+
+// ── Update ─────────────────────────────────────────────────────────────────────
+let lastTs = 0;
+function loop(ts) {
+  const dt = Math.min((ts - lastTs) / 1000, 0.05);
+  lastTs = ts;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  if (st === ST.MATH) {
+    wrongFlash = Math.max(0, wrongFlash - dt * 3);
+    rightFlash = Math.max(0, rightFlash - dt * 2.5);
+    return;
+  }
+  if (st !== ST.PLAYING) return;
+
+  const lv = LEVELS[levelIdx];
+  pl.inv = Math.max(0, pl.inv - dt);
+
+  // Input
+  const goL  = keys['ArrowLeft']  || keys['KeyA'] || T.left;
+  const goR  = keys['ArrowRight'] || keys['KeyD'] || T.right;
+  const jump = keys['ArrowUp']    || keys['KeyW'] || keys['Space'] || T.jump;
+
+  // Horizontal movement
+  if (goL)  { pl.vx = -RUN_SPD; pl.facing = -1; }
+  else if (goR) { pl.vx =  RUN_SPD; pl.facing =  1; }
+  else      { pl.vx *= 0.7; if (Math.abs(pl.vx) < 5) pl.vx = 0; }
+
+  // Jump
+  if (jump && pl.onGround) { pl.vy = JUMP_VY; pl.onGround = false; sfxJump(); }
+
+  // Apply gravity
+  pl.vy += GRAVITY * dt;
+
+  // Gate collision: block horizontal movement
+  let blockedRight = false, blockedLeft = false;
+  gates.forEach(g => {
+    if (g.open) return;
+    // Gate: world x = g.x, width = GATE_W, from y = GATE_Y to GROUND_Y
+    const gateRight = g.x + GATE_W;
+    const playerRight = pl.x + DW;
+    const playerLeft  = pl.x;
+    const playerTop   = pl.y;
+    const playerBot   = pl.y + DH;
+
+    if (playerBot > GATE_Y && playerTop < GROUND_Y) {
+      // Moving right into gate
+      if (pl.vx > 0 && playerRight + pl.vx * dt >= g.x && playerRight < g.x + 4 && playerTop < GROUND_Y - 2) {
+        blockedRight = true;
+        pl.x = g.x - DW - 1;
+        pl.vx = 0;
+        // Show math puzzle when player presses into gate
+        if (goR && !mathGate) openMath(g);
+      }
+      // Moving left into gate
+      if (pl.vx < 0 && playerLeft + pl.vx * dt <= gateRight && playerLeft > gateRight - 4) {
+        blockedLeft = true;
+        pl.x = gateRight + 1;
+        pl.vx = 0;
+      }
+    }
+  });
+
+  // Move player
+  pl.x += pl.vx * dt;
+  pl.y += pl.vy * dt;
+
+  // Clamp player left edge
+  if (pl.x < 2) { pl.x = 2; pl.vx = 0; }
+
+  // Ground collision
+  pl.onGround = false;
+  if (pl.vy >= 0) {
+    for (const seg of lv.ground) {
+      const px = pl.x + DW * 0.3;
+      const pw = DW * 0.4;
+      // Check if player bottom overlaps this segment's top
+      if (pl.y + DH >= GROUND_Y && pl.y + DH <= GROUND_Y + 20 &&
+          px + pw > seg.x && px < seg.x + seg.w) {
+        pl.y = GROUND_Y - DH;
+        pl.vy = 0;
+        pl.onGround = true;
+        break;
+      }
+    }
+  }
+
+  // Fell into hole
+  if (pl.y > CH + 30 && !pl.dead) {
+    pl.dead = true;
+    lives--;
+    sfxFall();
+    boom(pl.x + DW/2, GROUND_Y, '#4dff91', 10);
+    if (lives <= 0) { setTimeout(() => { st = ST.GAME_OVER; }, 800); }
+    else { setTimeout(() => { respawnPlayer(); }, 900); }
+  }
+
+  // Gate open animation
+  gates.forEach(g => {
+    if (g.open) g.openAnim = Math.min(1, g.openAnim + dt * 3.5);
+  });
+
+  // Gem collectibles
+  gems.forEach(gem => {
+    if (gem.collected) return;
+    if (Math.abs(pl.x + DW/2 - gem.x) < 22 && Math.abs(pl.y + DH/2 - gem.y) < 30) {
+      gem.collected = true;
+      score += 25;
+      boom(gem.x, gem.y, gem.col, 6);
+      sfxGemPick();
+    }
+  });
+
+  // Reach goal
+  if (!goalReached && pl.x + DW/2 >= goalX && pl.x + DW/2 <= goalX + 70) {
+    goalReached = true;
+    score += 500 + lives * 200;
+    if (score > hiScore) { hiScore = score; localStorage.setItem('dh_hi', hiScore); }
+    sfxGoal();
+    boom(goalX + 20, GROUND_Y - 60, LEVELS[levelIdx].color, 30);
+    setTimeout(() => { st = ST.LEVEL_CLEAR; }, 1200);
+  }
+
+  // Dino animation
+  if (pl.vx !== 0 && pl.onGround) {
+    pl.ft += dt;
+    if (pl.ft >= 0.14) { pl.frame ^= 1; pl.ft = 0; }
+  } else if (!pl.onGround) {
+    pl.frame = 2; // jump frame
+  } else {
+    pl.frame = 0;
+  }
+
+  // Camera: follow player, keep player at ~30% from left
+  const targetCamX = pl.x - CW * 0.3;
+  const maxCamX = LEVELS[levelIdx].worldW - CW;
+  camX += (Math.max(0, Math.min(maxCamX, targetCamX)) - camX) * 8 * dt;
+
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.vy += 120 * dt;
+    p.life -= dt;
+    p.r = Math.max(0, p.r - p.decay * dt);
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function openMath(g) {
+  mathGate = g;
+  if (!g.choices) g.choices = genChoices(g.problem.ans);
+  mathChoices = g.choices;
+  triesLeft = 3;
+  wrongFlash = 0; rightFlash = 0; wrongIdx = -1;
+  st = ST.MATH;
+}
+
+function chooseMath(i) {
+  if (rightFlash > 0) return;
+  const chosen = mathChoices[i];
+  if (chosen === mathGate.problem.ans) {
+    // Correct!
+    rightFlash = 0.8;
+    score += Math.max(20, 100 - mathWrong * 30);
+    if (score > hiScore) { hiScore = score; localStorage.setItem('dh_hi', hiScore); }
+    sfxRight();
+    mathGate.open = true;
+    sfxGateOpen();
+    boom(mathGate.x + GATE_W/2, GROUND_Y - GATE_H/2, LEVELS[levelIdx].color, 16);
+    setTimeout(() => {
+      st = ST.PLAYING;
+      mathGate = null;
+      mathWrong = 0;
+    }, 600);
+  } else {
+    // Wrong
+    wrongFlash = 0.7; wrongIdx = i;
+    mathWrong++;
+    sfxWrong();
+    triesLeft = Math.max(0, triesLeft - 1);
+    if (triesLeft === 0) {
+      // Regenerate problem with fresh choices
+      mathGate.problem = genProblem(LEVELS[levelIdx].ops, LEVELS[levelIdx].numRange);
+      mathGate.choices = genChoices(mathGate.problem.ans);
+      mathChoices = mathGate.choices;
+      triesLeft = 3;
+      lives = Math.max(0, lives - 1);
+      if (lives <= 0) { setTimeout(() => { st = ST.GAME_OVER; }, 800); return; }
+    }
+  }
+}
+
+function boom(x, y, col, count) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.PI * 2 * i / count + Math.random() * 0.4;
+    const spd = 60 + Math.random() * 120;
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 40,
+      r: 1.5 + Math.random() * 2.5,
+      decay: 3 + Math.random() * 4,
+      col, life: 0.4 + Math.random() * 0.35,
+    });
+  }
+}
+
+// ── Draw ──────────────────────────────────────────────────────────────────────
+function draw() {
+  const lv = levelIdx < LEVELS.length ? LEVELS[levelIdx] : LEVELS[LEVELS.length-1];
+  const now = Date.now() * 0.001;
+
+  // Background
+  ctx.fillStyle = lv.bg;
+  ctx.fillRect(0, 0, CW, CH);
+
+  // Draw game world (shifted by camera)
+  ctx.save();
+  // Clip to game area
+  ctx.beginPath(); ctx.rect(0, HH, CW, GH); ctx.clip();
+
+  // ── Parallax mountains ────────────────────────────────────────────────────
+  drawMountains(lv, camX);
+
+  // ── Stars ─────────────────────────────────────────────────────────────────
+  stars.forEach(s => {
+    const sx = ((s.x - camX * s.spd) % (CW * 3 + 200) + CW * 3 + 200) % (CW * 3 + 200);
+    ctx.fillStyle = 'rgba(180,200,180,0.4)';
+    ctx.beginPath(); ctx.arc(sx % CW + (Math.floor(sx/CW) * 0 | 0), s.y, s.r, 0, Math.PI*2); ctx.fill();
+  });
+  // Simpler star draw
+  for (let i = 0; i < stars.length; i++) {
+    const s = stars[i];
+    const sx = ((s.x - camX * 0.2) % (lv.worldW + 200) + lv.worldW + 200) % (lv.worldW + 200);
+    if (sx > CW) continue;
+    ctx.fillStyle = `rgba(180,220,180,0.35)`;
+    ctx.beginPath(); ctx.arc(sx, s.y, s.r, 0, Math.PI*2); ctx.fill();
+  }
+
+  // ── Ground segments ───────────────────────────────────────────────────────
+  lv.ground.forEach(seg => {
+    const sx = seg.x - camX;
+    // Main ground block
+    ctx.fillStyle = lv.groundCol;
+    ctx.fillRect(sx, GROUND_Y, seg.w, CH - GROUND_Y);
+    // Ground surface (bright line)
+    ctx.fillStyle = lv.color;
+    ctx.globalAlpha = 0.6;
+    ctx.fillRect(sx, GROUND_Y, seg.w, 3);
+    ctx.globalAlpha = 1;
+    // Tile pattern on ground
+    ctx.strokeStyle = lv.tileCol;
+    ctx.lineWidth = 1;
+    for (let tx = Math.floor(sx/40)*40; tx < sx + seg.w; tx += 40) {
+      if (tx < sx) continue;
+      ctx.beginPath(); ctx.moveTo(tx, GROUND_Y); ctx.lineTo(tx, CH); ctx.stroke();
+    }
+    for (let ty = GROUND_Y; ty < CH; ty += 30) {
+      ctx.beginPath(); ctx.moveTo(sx, ty); ctx.lineTo(sx + seg.w, ty); ctx.stroke();
+    }
+    // Ground top neon glow
+    ctx.save();
+    ctx.shadowBlur = 8; ctx.shadowColor = lv.color;
+    ctx.strokeStyle = lv.color;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx, GROUND_Y+1); ctx.lineTo(sx+seg.w, GROUND_Y+1); ctx.stroke();
+    ctx.restore();
+  });
+
+  // ── Gates ─────────────────────────────────────────────────────────────────
+  gates.forEach(g => {
+    const sx = g.x - camX;
+    const openFrac = g.openAnim; // 0=closed, 1=open
+    // Gate shrinks downward as it opens
+    const gateVisH = GATE_H * (1 - openFrac);
+    const gateTopY = GROUND_Y - gateVisH;
+
+    if (gateVisH < 2) return; // fully open
+
+    // Gate body
+    ctx.save();
+    ctx.shadowBlur = 14; ctx.shadowColor = '#d77eff';
+    ctx.fillStyle = '#1a0030';
+    ctx.fillRect(sx, gateTopY, GATE_W, gateVisH);
+    // Gate border
+    ctx.strokeStyle = '#d77eff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(sx + 1.5, gateTopY + 1.5, GATE_W - 3, gateVisH - 3);
+    // Gate inner pattern
+    ctx.strokeStyle = 'rgba(215,126,255,0.3)';
+    ctx.lineWidth = 1;
+    for (let gy = gateTopY + 10; gy < GROUND_Y - 5; gy += 16) {
+      ctx.beginPath(); ctx.moveTo(sx+3, gy); ctx.lineTo(sx+GATE_W-3, gy); ctx.stroke();
+    }
+    // Question mark on gate
+    if (!g.open) {
+      ctx.fillStyle = '#d77eff';
+      ctx.font = 'bold 20px Silkscreen';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('?', sx + GATE_W/2, gateTopY + gateVisH/2);
+    }
+    ctx.restore();
+  });
+
+  // ── Gems ──────────────────────────────────────────────────────────────────
+  gems.forEach(gem => {
+    if (gem.collected) return;
+    const sx = gem.x - camX;
+    if (sx < -20 || sx > CW + 20) return;
+    const bob = Math.sin(now * 3 + gem.x * 0.01) * 5;
+    ctx.save();
+    ctx.shadowBlur = 10; ctx.shadowColor = gem.col;
+    ctx.fillStyle = gem.col;
+    // Diamond shape
+    ctx.beginPath();
+    ctx.moveTo(sx,     gem.y + bob - 8);
+    ctx.lineTo(sx + 7, gem.y + bob);
+    ctx.lineTo(sx,     gem.y + bob + 8);
+    ctx.lineTo(sx - 7, gem.y + bob);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // ── Goal flag ─────────────────────────────────────────────────────────────
+  {
+    const gsx = goalX - camX;
+    if (gsx > -60 && gsx < CW + 60) {
+      ctx.save();
+      const wave = Math.sin(now * 4) * 8;
+      // Pole
+      ctx.strokeStyle = '#cccccc'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(gsx, GROUND_Y); ctx.lineTo(gsx, GROUND_Y - 110); ctx.stroke();
+      // Flag
+      ctx.shadowBlur = 16; ctx.shadowColor = LEVELS[levelIdx].color;
+      ctx.fillStyle = LEVELS[levelIdx].color;
+      ctx.beginPath();
+      ctx.moveTo(gsx, GROUND_Y - 110);
+      ctx.lineTo(gsx + 50 + wave, GROUND_Y - 95);
+      ctx.lineTo(gsx, GROUND_Y - 80);
+      ctx.closePath();
+      ctx.fill();
+      // Star on flag
+      ctx.fillStyle = '#fff';
+      ctx.font = '16px Silkscreen';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('★', gsx + 22, GROUND_Y - 96);
+      // Goal text
+      ctx.shadowBlur = 12; ctx.shadowColor = LEVELS[levelIdx].color;
+      ctx.fillStyle = LEVELS[levelIdx].color;
+      ctx.font = '9px Silkscreen';
+      ctx.textAlign = 'center';
+      ctx.fillText('GOAL', gsx + 4, GROUND_Y - 120);
+      ctx.restore();
+    }
+  }
+
+  // ── Dinosaur ──────────────────────────────────────────────────────────────
+  if (!pl.dead || pl.inv > 0) {
+    const show = pl.inv <= 0 || Math.floor(pl.inv * 9) % 2 === 0;
+    if (show) {
+      drawDino(pl.x - camX, pl.y, pl.frame, pl.facing, pl.onGround);
+    }
+  }
+
+  // ── Particles ─────────────────────────────────────────────────────────────
+  ctx.save();
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 2.5));
+    ctx.shadowBlur = 8; ctx.shadowColor = p.col;
+    ctx.fillStyle = p.col;
+    ctx.beginPath(); ctx.arc(p.x - camX, p.y, Math.max(0.1, p.r), 0, Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  ctx.restore();
+
+  ctx.restore(); // end game area clip
+
+  // ── HUD ───────────────────────────────────────────────────────────────────
+  drawHUD(lv, now);
+
+  // ── Overlays ──────────────────────────────────────────────────────────────
+  if (st === ST.MATH)        drawMathOverlay(lv, now);
+  if (st === ST.TITLE)       drawTitle(now);
+  if (st === ST.LEVEL_CLEAR) drawLevelClear(lv, now);
+  if (st === ST.GAME_OVER)   drawGameOver(now);
+  if (st === ST.WIN)         drawWin(now);
+}
+
+// ── Dinosaur drawing ──────────────────────────────────────────────────────────
+function drawDino(sx, sy, frame, facing, onGround) {
+  ctx.save();
+  // Flip for facing direction
+  if (facing === -1) {
+    ctx.translate(sx + DW/2, 0);
+    ctx.scale(-1, 1);
+    ctx.translate(-sx - DW/2, 0);
+  }
+
+  const gc = '#4dff91';   // neon green
+  const gc2 = '#2db866';  // darker green
+  const gc3 = '#0d3d1a';  // very dark
+  ctx.shadowBlur = 10; ctx.shadowColor = gc;
+
+  // Tail (triangle pointing left)
+  ctx.fillStyle = gc2;
+  ctx.beginPath();
+  ctx.moveTo(sx + 4,  sy + 28);
+  ctx.lineTo(sx - 14, sy + 24);
+  ctx.lineTo(sx + 4,  sy + 38);
+  ctx.closePath();
+  ctx.fill();
+
+  // Body
+  ctx.fillStyle = gc;
+  ctx.fillRect(sx + 2, sy + 18, 24, 26);
+
+  // Head
+  ctx.fillRect(sx + 14, sy + 2, 22, 20);
+
+  // Head highlight
+  ctx.fillStyle = gc2;
+  ctx.fillRect(sx + 16, sy + 4, 18, 3);
+
+  // Eye (white + pupil)
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(sx + 27, sy + 6, 6, 6);
+  ctx.fillStyle = '#001005';
+  ctx.fillRect(sx + 29, sy + 7, 4, 4);
+  // Eye shine
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(sx + 30, sy + 7, 2, 2);
+
+  // Nostril
+  ctx.fillStyle = gc3;
+  ctx.fillRect(sx + 33, sy + 14, 3, 2);
+
+  // Teeth (open mouth depending on frame)
+  ctx.fillStyle = '#fff';
+  if (frame === 0) ctx.fillRect(sx + 30, sy + 18, 6, 3);
+
+  // Arm (tiny)
+  ctx.shadowBlur = 6; ctx.shadowColor = gc;
+  ctx.fillStyle = gc;
+  ctx.fillRect(sx + 20, sy + 22, 11, 7);
+  // Claw
+  ctx.fillStyle = gc2;
+  ctx.fillRect(sx + 29, sy + 27, 3, 4);
+  ctx.fillRect(sx + 25, sy + 27, 3, 3);
+
+  // Legs animated
+  ctx.fillStyle = gc;
+  let l1h = 14, l2h = 14, l1y = sy+42, l2y = sy+42;
+  let f1x = sx+6, f2x = sx+18;
+  if (frame === 0 && onGround) { l1h = 16; l2h = 10; l2y = sy+46; }
+  else if (frame === 1 && onGround) { l1h = 10; l2h = 16; l1y = sy+46; }
+  else if (frame === 2) { l1h = 8; l2h = 8; l1y = sy+44; l2y = sy+44; } // jump
+
+  ctx.fillRect(f1x, l1y, 10, l1h);
+  ctx.fillRect(f2x, l2y, 10, l2h);
+
+  // Feet
+  ctx.fillStyle = gc2;
+  ctx.fillRect(f1x - 2, l1y + l1h - 2, 14, 4);
+  ctx.fillRect(f2x - 2, l2y + l2h - 2, 14, 4);
+
+  ctx.restore();
+}
+
+// ── Mountains parallax ────────────────────────────────────────────────────────
+function drawMountains(lv, camX) {
+  ctx.save();
+  ctx.fillStyle = lv.mtnCol;
+  const mtnW = 2400;
+  const offset = (camX * 0.25) % mtnW;
+
+  // Draw two copies for seamless scroll
+  for (let rep = -1; rep <= 1; rep++) {
+    const ox = rep * mtnW - offset;
+    ctx.beginPath();
+    ctx.moveTo(ox, CH);
+    // Silhouette of prehistoric mountains
+    const pts = [0,0, 120,0, 180,-70, 240,-50, 330,-110, 420,-85, 500,-140, 600,-90, 700,-160, 800,-80, 900,-130, 1000,-60, 1100,-100, 1200,-40, 1300,-80, 1400,-120, 1500,-55, 1600,-100, 1700,-40, 1800,-90, 1900,-60, 2000,-110, 2100,-70, 2200,-40, 2400,0];
+    for (let i = 0; i < pts.length; i += 2) {
+      ctx.lineTo(ox + pts[i], GROUND_Y - 5 + pts[i+1] * 0.7);
+    }
+    ctx.lineTo(ox + mtnW, CH);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Closer hills (darker, faster parallax)
+  ctx.fillStyle = lv.tileCol;
+  ctx.globalAlpha = 0.4;
+  const hillOffset = (camX * 0.5) % 1600;
+  for (let rep = -1; rep <= 1; rep++) {
+    const ox = rep * 1600 - hillOffset;
+    ctx.beginPath();
+    ctx.moveTo(ox, CH);
+    const hpts = [0,0, 80,-30, 160,-50, 280,-35, 380,-60, 500,-40, 620,-55, 740,-30, 860,-45, 1000,-25, 1200,-40, 1400,-30, 1600,0];
+    hpts.forEach((v, i) => { if(i%2===0) ctx.lineTo(ox+v, GROUND_Y-5+hpts[i+1||0]); });
+    ctx.lineTo(ox+1600, CH); ctx.closePath(); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ── HUD ───────────────────────────────────────────────────────────────────────
+function drawHUD(lv, now) {
+  const lv2 = LEVELS[Math.min(levelIdx, LEVELS.length-1)];
+
+  // HUD background
+  ctx.fillStyle = 'rgba(0,2,0,0.85)';
+  ctx.fillRect(0, 0, CW, HH);
+  ctx.strokeStyle = 'rgba(77,255,145,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, HH); ctx.lineTo(CW, HH); ctx.stroke();
+
+  ctx.textBaseline = 'middle';
+
+  // Level name (center)
+  ctx.save();
+  ctx.shadowBlur = 10; ctx.shadowColor = lv2.color;
+  ctx.fillStyle = lv2.color;
+  ctx.font = '11px Silkscreen'; ctx.textAlign = 'center';
+  ctx.fillText(`LV ${levelIdx+1}: ${lv2.name}`, CW/2, HH/2);
+  ctx.restore();
+
+  // Score (left)
+  ctx.save();
+  ctx.shadowBlur = 8; ctx.shadowColor = '#4dff91';
+  ctx.fillStyle = '#4dff91';
+  ctx.font = '10px Silkscreen'; ctx.textAlign = 'left';
+  ctx.fillText('SCORE', 12, HH/2 - 8);
+  ctx.font = '13px Silkscreen';
+  ctx.fillText(score.toString().padStart(6,'0'), 12, HH/2 + 7);
+  ctx.restore();
+
+  // Lives (right side - mini dinos)
+  const lifeX = CW - 14;
+  ctx.save();
+  ctx.font = '9px Silkscreen'; ctx.textAlign = 'right';
+  ctx.fillStyle = '#9da5f7';
+  ctx.fillText('LIVES', lifeX, HH/2 - 8);
+  for (let i = 0; i < Math.min(lives, 5); i++) {
+    const lx = lifeX - (i+1) * 24;
+    ctx.save();
+    ctx.shadowBlur = 6; ctx.shadowColor = '#4dff91';
+    ctx.fillStyle = '#4dff91';
+    // mini dino (tiny triangle + body)
+    ctx.fillRect(lx - 4, HH/2 + 1, 10, 7);
+    ctx.beginPath(); ctx.moveTo(lx + 6, HH/2-2); ctx.lineTo(lx+15, HH/2+2); ctx.lineTo(lx+6, HH/2+6); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Hi-score
+  ctx.save();
+  ctx.fillStyle = '#39408c';
+  ctx.font = '9px Silkscreen'; ctx.textAlign = 'center';
+  ctx.fillText(`HI ${hiScore.toString().padStart(6,'0')}`, CW/2, HH - 7);
+  ctx.restore();
+}
+
+// ── Math overlay ──────────────────────────────────────────────────────────────
+function drawMathOverlay(lv, now) {
+  if (!mathGate) return;
+
+  // Backdrop
+  ctx.fillStyle = 'rgba(0,2,0,0.88)';
+  ctx.fillRect(0, HH, CW, GH);
+
+  // Title
+  ctx.save();
+  ctx.shadowBlur = 18; ctx.shadowColor = lv.color;
+  ctx.fillStyle = lv.color;
+  ctx.font = '12px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('🦕  MATH GATE  🦕', CW/2, HH + 36);
+  ctx.restore();
+
+  // Operator label
+  const opName = { '+': 'ADDITION', '-': 'SUBTRACTION', '×': 'MULTIPLICATION', '÷': 'DIVISION' };
+  const op = mathGate.problem.op;
+  ctx.save();
+  ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(opName[op] || '', CW/2, HH + 56);
+  ctx.restore();
+
+  // Question box
+  const qbw = 380, qbh = 72;
+  const qbx = (CW - qbw) / 2, qby = HH + 68;
+  ctx.save();
+  ctx.shadowBlur = 20; ctx.shadowColor = '#ffd84d';
+  ctx.fillStyle = 'rgba(30,25,0,0.9)';
+  ctx.fillRect(qbx, qby, qbw, qbh);
+  ctx.strokeStyle = '#ffd84d'; ctx.lineWidth = 3;
+  ctx.strokeRect(qbx+1.5, qby+1.5, qbw-3, qbh-3);
+  // Question text
+  ctx.fillStyle = '#ffd84d';
+  ctx.font = '28px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(mathGate.problem.q, CW/2, qby + qbh/2);
+  ctx.restore();
+
+  // Tries remaining
+  ctx.save();
+  ctx.fillStyle = triesLeft <= 1 ? '#ff6e84' : '#9da5f7';
+  ctx.font = '9px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(`TRIES LEFT: ${triesLeft}   (PRESS 1-4 OR TAP)`, CW/2, qby + qbh + 16);
+  ctx.restore();
+
+  // Answer buttons 2×2
+  const rects = getMathButtonRects();
+  const ansColors = ['#70f0f3', '#d77eff', '#4dff91', '#ffd84d'];
+  mathChoices.forEach((val, i) => {
+    const r = rects[i];
+    const isWrong = wrongFlash > 0 && i === wrongIdx;
+    const isRight = rightFlash > 0 && val === mathGate.problem.ans;
+    let bgCol = 'rgba(0,20,10,0.9)';
+    let borderCol = ansColors[i];
+    let textCol = ansColors[i];
+    if (isWrong) { bgCol = 'rgba(60,0,0,0.95)'; borderCol = '#ff6e84'; textCol = '#ff6e84'; }
+    if (isRight) { bgCol = 'rgba(0,60,20,0.95)'; borderCol = '#4dff91'; textCol = '#4dff91'; }
+
+    ctx.save();
+    ctx.shadowBlur = isRight ? 20 : (isWrong ? 15 : 10);
+    ctx.shadowColor = borderCol;
+    ctx.fillStyle = bgCol;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = borderCol; ctx.lineWidth = 2;
+    ctx.strokeRect(r.x+1, r.y+1, r.w-2, r.h-2);
+
+    // Number key hint
+    ctx.fillStyle = borderCol;
+    ctx.globalAlpha = 0.5;
+    ctx.font = '8px Silkscreen'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText((i+1).toString(), r.x+6, r.y+5);
+    ctx.globalAlpha = 1;
+
+    // Answer value
+    ctx.font = '22px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = textCol;
+    ctx.fillText(val.toString(), r.x + r.w/2, r.y + r.h/2);
+
+    if (isWrong) {
+      ctx.fillStyle = '#ff6e84'; ctx.font = '12px Silkscreen';
+      ctx.fillText('✗', r.x + r.w - 16, r.y + r.h/2);
+    }
+    if (isRight) {
+      ctx.fillStyle = '#4dff91'; ctx.font = '12px Silkscreen';
+      ctx.fillText('✓', r.x + r.w - 16, r.y + r.h/2);
+    }
+    ctx.restore();
+  });
+
+  // Score hint
+  ctx.save();
+  ctx.fillStyle = '#39408c'; ctx.font = '8px Silkscreen';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  const pts = Math.max(20, 100 - mathWrong * 30);
+  ctx.fillText(`CORRECT = +${pts} POINTS`, CW/2, CH - 8);
+  ctx.restore();
+}
+
+// ── Screen overlays ───────────────────────────────────────────────────────────
+function drawTitle(now) {
+  ctx.fillStyle = 'rgba(0,2,0,0.88)';
+  ctx.fillRect(0, 0, CW, CH);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  // Animated title
+  const pulse = 0.88 + 0.12 * Math.sin(now * 1.6);
+  ctx.save();
+  ctx.shadowBlur = 25 * pulse; ctx.shadowColor = '#4dff91';
+  ctx.fillStyle = '#4dff91';
+  ctx.font = '24px Silkscreen';
+  ctx.fillText('DINOSAUR HOLE', CW/2, CH/2 - 110);
+  ctx.font = '20px Silkscreen';
+  ctx.fillStyle = '#ffd84d'; ctx.shadowColor = '#ffd84d';
+  ctx.fillText('GAME LIFE', CW/2, CH/2 - 75);
+  ctx.restore();
+
+  // Dino showcase
+  drawDino(CW/2 - 18, CH/2 - 52, Math.floor(now * 4) % 2, 1, false);
+
+  // Level list
+  ctx.save();
+  LEVELS.forEach((lv, i) => {
+    ctx.fillStyle = lv.color; ctx.shadowBlur = 6; ctx.shadowColor = lv.color;
+    ctx.font = '9px Silkscreen'; ctx.textAlign = 'left';
+    ctx.fillText(`LV${i+1}: ${lv.name} — ${lv.ops.join('/')}`, CW/2 - 120, CH/2 + 30 + i*20);
+  });
+  ctx.restore();
+
+  // Instructions
+  ctx.save();
+  ctx.fillStyle = '#9da5f7'; ctx.font = '8px Silkscreen';
+  ctx.textAlign = 'center';
+  ctx.fillText('← → MOVE   ↑ / SPACE JUMP   SOLVE MATH GATES TO ADVANCE', CW/2, CH/2 + 140);
+  ctx.restore();
+
+  // Blink prompt
+  if (Math.floor(now * 1.8) % 2 === 0) {
+    ctx.save();
+    ctx.shadowBlur = 12; ctx.shadowColor = '#4dff91';
+    ctx.fillStyle = '#4dff91'; ctx.font = '11px Silkscreen';
+    ctx.textAlign = 'center';
+    ctx.fillText('PRESS SPACE / JUMP TO START', CW/2, CH - 34);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.fillStyle = '#39408c'; ctx.font = '9px Silkscreen';
+  ctx.textAlign = 'center';
+  ctx.fillText(`HI-SCORE: ${hiScore.toString().padStart(6,'0')}`, CW/2, CH - 15);
+  ctx.restore();
+}
+
+function drawLevelClear(lv, now) {
+  ctx.fillStyle = 'rgba(0,2,0,0.75)';
+  ctx.fillRect(0, HH, CW, GH);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.save();
+  ctx.shadowBlur = 22; ctx.shadowColor = lv.color;
+  ctx.fillStyle = lv.color;
+  ctx.font = '22px Silkscreen';
+  ctx.fillText('SECTOR CLEARED!', CW/2, CH/2 - 60);
+
+  ctx.font = '12px Silkscreen';
+  ctx.fillStyle = '#ffd84d'; ctx.shadowColor = '#ffd84d';
+  ctx.fillText(`SCORE: ${score.toString().padStart(6,'0')}`, CW/2, CH/2 - 22);
+
+  ctx.font = '9px Silkscreen'; ctx.fillStyle = '#9da5f7'; ctx.shadowBlur = 0;
+  if (levelIdx + 1 < LEVELS.length) {
+    ctx.fillText(`NEXT: LV${levelIdx+2} — ${LEVELS[levelIdx+1].name}`, CW/2, CH/2 + 14);
+    ctx.fillText('NEW OPERATION: ' + LEVELS[levelIdx+1].ops.join(' / '), CW/2, CH/2 + 36);
+  }
+
+  if (Math.floor(now * 1.8) % 2 === 0) {
+    ctx.shadowBlur = 10; ctx.shadowColor = lv.color;
+    ctx.fillStyle = lv.color; ctx.font = '9px Silkscreen';
+    ctx.fillText('PRESS SPACE / JUMP TO CONTINUE', CW/2, CH/2 + 68);
+  }
+  ctx.restore();
+}
+
+function drawGameOver(now) {
+  ctx.fillStyle = 'rgba(0,2,0,0.82)';
+  ctx.fillRect(0, 0, CW, CH);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.save();
+  ctx.shadowBlur = 24; ctx.shadowColor = '#ff6e84';
+  ctx.fillStyle = '#ff6e84';
+  ctx.font = '28px Silkscreen';
+  ctx.fillText('GAME OVER', CW/2, CH/2 - 70);
+
+  ctx.font = '11px Silkscreen'; ctx.fillStyle = '#d77eff'; ctx.shadowColor = '#d77eff';
+  ctx.fillText(`SCORE:    ${score.toString().padStart(6,'0')}`, CW/2, CH/2 - 22);
+  ctx.fillText(`HI-SCORE: ${hiScore.toString().padStart(6,'0')}`, CW/2, CH/2 + 8);
+
+  if (score >= hiScore && score > 0) {
+    ctx.font = '9px Silkscreen'; ctx.fillStyle = '#ffd84d'; ctx.shadowColor = '#ffd84d';
+    ctx.fillText('★ NEW HIGH SCORE! ★', CW/2, CH/2 + 36);
+  }
+
+  if (Math.floor(now * 1.8) % 2 === 0) {
+    ctx.shadowBlur = 8; ctx.shadowColor = '#9da5f7';
+    ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
+    ctx.fillText('PRESS SPACE TO RETRY', CW/2, CH/2 + 66);
+  }
+  ctx.restore();
+}
+
+function drawWin(now) {
+  ctx.fillStyle = 'rgba(0,2,0,0.85)';
+  ctx.fillRect(0, 0, CW, CH);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const pulse = 0.8 + 0.2 * Math.sin(now * 2);
+
+  ctx.save();
+  ctx.shadowBlur = 28 * pulse; ctx.shadowColor = '#ffd84d';
+  ctx.fillStyle = '#ffd84d';
+  ctx.font = '26px Silkscreen';
+  ctx.fillText('YOU WIN!', CW/2, CH/2 - 90);
+
+  ctx.fillStyle = '#4dff91'; ctx.shadowColor = '#4dff91';
+  ctx.font = '13px Silkscreen';
+  ctx.fillText('ALL 5 SECTORS CONQUERED!', CW/2, CH/2 - 52);
+
+  // Mini dino celebration
+  const dinoY = CH/2 - 20;
+  drawDino(CW/2 - 60, dinoY, Math.floor(now * 6) % 2, Math.sin(now*3) > 0 ? 1 : -1, false);
+  drawDino(CW/2 + 20, dinoY, Math.floor(now * 6 + 1) % 2, Math.sin(now*3) > 0 ? -1 : 1, false);
+
+  ctx.font = '12px Silkscreen';
+  ctx.fillStyle = '#d77eff'; ctx.shadowColor = '#d77eff';
+  ctx.fillText(`FINAL SCORE: ${score.toString().padStart(6,'0')}`, CW/2, CH/2 + 40);
+
+  if (score >= hiScore) {
+    ctx.font = '9px Silkscreen'; ctx.fillStyle = '#ffd84d'; ctx.shadowColor = '#ffd84d';
+    ctx.fillText('★ NEW HIGH SCORE! ★', CW/2, CH/2 + 64);
+  }
+
+  if (Math.floor(now * 1.8) % 2 === 0) {
+    ctx.shadowBlur = 8; ctx.shadowColor = '#9da5f7';
+    ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
+    ctx.fillText('PRESS SPACE TO PLAY AGAIN', CW/2, CH - 30);
+  }
+  ctx.restore();
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+requestAnimationFrame(loop);
+
+})(); // end IIFE
+</script>
+</body>
+</html>
