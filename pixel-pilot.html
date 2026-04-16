@@ -35,7 +35,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      width: 480px;
+      width: 640px;
       max-width: 95vw;
       padding: 6px 2px 6px;
     }
@@ -59,14 +59,17 @@
         0 0 30px rgba(112,240,243,0.15),
         0 0 60px rgba(112,240,243,0.08),
         inset 0 0 30px rgba(0,3,65,0.5);
+      width: 640px;
       max-width: 95vw;
+      aspect-ratio: 4 / 5;
+      image-rendering: pixelated;
     }
 
     /* Touch controls */
     #touch-controls {
       display: none;
       justify-content: space-between;
-      width: 480px;
+      width: 640px;
       max-width: 95vw;
       padding: 10px 0;
       gap: 8px;
@@ -179,8 +182,6 @@ const H   = cv.height;  // 600
   const cw = cv.width, ch = cv.height;
   cv.width  = cw * dpr;
   cv.height = ch * dpr;
-  cv.style.width  = cw + 'px';
-  cv.style.height = ch + 'px';
   ctx.scale(dpr, dpr);
 })();
 
