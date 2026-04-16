@@ -128,7 +128,7 @@ const GATE_W = 26, GATE_H = 100; // gate wall size (sits on ground)
 const GATE_Y  = GROUND_Y - GATE_H;  // gate top y
 
 // ── State machine ─────────────────────────────────────────────────────────────
-const ST = { TITLE:0, PLAYING:1, MATH:2, LEVEL_CLEAR:3, GAME_OVER:4, WIN:5 };
+const ST = { TITLE:0, PLAYING:1, MATH:2, LEVEL_CLEAR:3, GAME_OVER:4, WIN:5, NAME_ENTRY:6 };
 let st = ST.TITLE;
 
 // ── Level data ────────────────────────────────────────────────────────────────
@@ -181,6 +181,67 @@ const LEVELS = [
 // ── Persistent state ──────────────────────────────────────────────────────────
 let score = 0, lives = 3, levelIdx = 0;
 let hiScore = parseInt(localStorage.getItem('dh_hi') || '0');
+
+// ── Leaderboard ──────────────────────────────────────────────────────────────
+const LB_KEY  = 'dh_leaderboard';
+const LB_SIZE = 10;
+function lbGet()           { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
+function lbSave(e)         { localStorage.setItem(LB_KEY, JSON.stringify(e)); }
+function lbIsTop(s)        { const e = lbGet(); return s > 0 && (e.length < LB_SIZE || s > e[e.length-1].score); }
+function lbInsert(name, s) {
+  const e = lbGet();
+  e.push({ name: name.toUpperCase(), score: s, date: new Date().toISOString().slice(0,10) });
+  e.sort((a,b) => b.score - a.score);
+  if (e.length > LB_SIZE) e.length = LB_SIZE;
+  lbSave(e);
+}
+
+// ── Name entry state ─────────────────────────────────────────────────────────
+let nameChars     = ['A','A','A'];
+let nameCursor    = 0;
+let nameEntryNext = ST.GAME_OVER; // state to go to after name saved
+
+function prevNameChar() {
+  const c = nameChars[nameCursor].charCodeAt(0);
+  nameChars[nameCursor] = String.fromCharCode(c === 65 ? 90 : c - 1);
+  beep(660, 0.06, 'square', 0.12);
+}
+function nextNameChar() {
+  const c = nameChars[nameCursor].charCodeAt(0);
+  nameChars[nameCursor] = String.fromCharCode(c === 90 ? 65 : c + 1);
+  beep(880, 0.06, 'square', 0.12);
+}
+function advanceName() {
+  if (nameCursor < 2) {
+    nameCursor++;
+    beep(660, 0.08, 'triangle', 0.15);
+  } else {
+    lbInsert(nameChars.join(''), score);
+    st = nameEntryNext;
+  }
+}
+function backName() {
+  if (nameCursor > 0) { nameCursor--; beep(440, 0.08, 'square', 0.1); }
+}
+
+function doGameOver() {
+  if (score > hiScore) { hiScore = score; localStorage.setItem('dh_hi', hiScore); }
+  if (lbIsTop(score)) {
+    nameChars = ['A','A','A']; nameCursor = 0; nameEntryNext = ST.GAME_OVER;
+    st = ST.NAME_ENTRY;
+  } else {
+    st = ST.GAME_OVER;
+  }
+}
+function doWin() {
+  if (score > hiScore) { hiScore = score; localStorage.setItem('dh_hi', hiScore); }
+  if (lbIsTop(score)) {
+    nameChars = ['A','A','A']; nameCursor = 0; nameEntryNext = ST.WIN;
+    st = ST.NAME_ENTRY;
+  } else {
+    st = ST.WIN;
+  }
+}
 
 // ── Current level runtime data ────────────────────────────────────────────────
 let gates      = [];   // {x, problem:{q,ans}, open:bool, openAnim:0..1}
@@ -254,7 +315,15 @@ const keys = {};
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
   unlockAudio();
-  if (['Space','ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault();
+  if (['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)) e.preventDefault();
+
+  if (st === ST.NAME_ENTRY) {
+    if (e.code === 'ArrowUp')   { prevNameChar(); return; }
+    if (e.code === 'ArrowDown') { nextNameChar(); return; }
+    if (e.code === 'ArrowLeft') { backName(); return; }
+    if (e.code === 'ArrowRight' || e.code === 'Enter' || e.code === 'Space') { advanceName(); return; }
+    return;
+  }
 
   if (st === ST.TITLE && (e.code==='Space'||e.code==='Enter')) startGame();
   if (st === ST.GAME_OVER && (e.code==='Space'||e.code==='Enter')) { st=ST.TITLE; }
@@ -277,6 +346,11 @@ function bindTch(id, key) {
   const el = document.getElementById(id);
   el.addEventListener('touchstart', e => {
     e.preventDefault(); T[key]=true; el.classList.add('on'); unlockAudio();
+    if (st === ST.NAME_ENTRY) {
+      if (key === 'left')  { prevNameChar(); return; }
+      if (key === 'right') { nextNameChar(); return; }
+      if (key === 'jump')  { advanceName(); return; }
+    }
     if (st===ST.TITLE) startGame();
     if (st===ST.GAME_OVER) st=ST.TITLE;
     if (st===ST.WIN) st=ST.TITLE;
@@ -410,7 +484,7 @@ function initLevel() {
 
 function nextLevel() {
   levelIdx++;
-  if (levelIdx >= LEVELS.length) { st = ST.WIN; return; }
+  if (levelIdx >= LEVELS.length) { doWin(); return; }
   st = ST.PLAYING;
   initLevel();
 }
@@ -535,7 +609,7 @@ function update(dt) {
     lives--;
     sfxFall();
     boom(pl.x + DW/2, GROUND_Y, '#4dff91', 10);
-    if (lives <= 0) { setTimeout(() => { st = ST.GAME_OVER; }, 800); }
+    if (lives <= 0) { setTimeout(() => { doGameOver(); }, 800); }
     else { setTimeout(() => { respawnPlayer(); }, 900); }
   }
 
@@ -630,7 +704,7 @@ function chooseMath(i) {
       mathChoices = mathGate.choices;
       triesLeft = 3;
       lives = Math.max(0, lives - 1);
-      if (lives <= 0) { setTimeout(() => { st = ST.GAME_OVER; }, 800); return; }
+      if (lives <= 0) { setTimeout(() => { doGameOver(); }, 800); return; }
     }
   }
 }
@@ -830,6 +904,7 @@ function draw() {
   if (st === ST.LEVEL_CLEAR) drawLevelClear(lv, now);
   if (st === ST.GAME_OVER)   drawGameOver(now);
   if (st === ST.WIN)         drawWin(now);
+  if (st === ST.NAME_ENTRY)  drawNameEntry(now);
 }
 
 // ── Dinosaur drawing ──────────────────────────────────────────────────────────
@@ -1256,6 +1331,77 @@ function drawWin(now) {
     ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
     ctx.fillText('PRESS SPACE TO PLAY AGAIN', CW/2, CH - 30);
   }
+  ctx.restore();
+}
+
+function drawNameEntry(t) {
+  ctx.fillStyle = 'rgba(0,2,0,0.88)';
+  ctx.fillRect(0, 0, CW, CH);
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  ctx.save();
+  ctx.shadowBlur = 20; ctx.shadowColor = '#4dff91';
+  ctx.fillStyle = '#4dff91'; ctx.font = '14px Silkscreen';
+  ctx.fillText('★ TOP 10 ★', CW/2, CH/2 - 100);
+  ctx.restore();
+
+  ctx.save();
+  ctx.shadowBlur = 10; ctx.shadowColor = '#ffd84d';
+  ctx.fillStyle = '#ffd84d'; ctx.font = '11px Silkscreen';
+  ctx.fillText('ENTER YOUR INITIALS', CW/2, CH/2 - 70);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
+  ctx.fillText('SCORE: ' + score.toString().padStart(6,'0'), CW/2, CH/2 - 50);
+  ctx.restore();
+
+  // Letter boxes
+  const boxW = 52, boxH = 64, gap = 18;
+  const totalW = 3*boxW + 2*gap;
+  const ox = CW/2 - totalW/2;
+  const oy = CH/2 - 22;
+
+  for (let i = 0; i < 3; i++) {
+    const bx = ox + i*(boxW+gap);
+    const isActive = i === nameCursor;
+    const pulse = isActive ? (0.6 + 0.4*Math.sin(t*4)) : 0;
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    if (isActive) { ctx.shadowBlur = 20*pulse; ctx.shadowColor = '#4dff91'; ctx.strokeStyle = '#4dff91'; }
+    else if (i < nameCursor) { ctx.shadowBlur = 6; ctx.shadowColor = '#ffd84d'; ctx.strokeStyle = '#ffd84d'; }
+    else { ctx.strokeStyle = '#39408c'; }
+    ctx.strokeRect(bx, oy, boxW, boxH);
+    ctx.restore();
+
+    ctx.save();
+    if (isActive) { ctx.shadowBlur = 14; ctx.shadowColor = '#4dff91'; ctx.fillStyle = '#4dff91'; }
+    else if (i < nameCursor) { ctx.fillStyle = '#ffd84d'; }
+    else { ctx.fillStyle = '#676fbd'; }
+    ctx.font = '30px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(nameChars[i], bx+boxW/2, oy+boxH/2);
+    ctx.restore();
+
+    if (isActive) {
+      ctx.save();
+      ctx.fillStyle = '#4dff91'; ctx.shadowBlur = 8; ctx.shadowColor = '#4dff91';
+      ctx.font = '10px Silkscreen'; ctx.textAlign = 'center';
+      ctx.fillText('▲', bx+boxW/2, oy-14);
+      ctx.fillText('▼', bx+boxW/2, oy+boxH+14);
+      ctx.restore();
+    }
+  }
+
+  ctx.save();
+  ctx.fillStyle = '#676fbd'; ctx.font = '8px Silkscreen'; ctx.textAlign = 'center';
+  ctx.fillText('↑/↓ CHANGE    SPACE/ENTER CONFIRM    ← BACK', CW/2, CH/2 + 68);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#39408c'; ctx.font = '7px Silkscreen'; ctx.textAlign = 'center';
+  ctx.fillText('TOUCH: ◀/▶ CHANGE    JUMP CONFIRM', CW/2, CH/2 + 84);
   ctx.restore();
 }
 

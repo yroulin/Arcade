@@ -185,12 +185,54 @@ const H   = cv.height;  // 600
 })();
 
 // ── State machine ─────────────────────────────────────────────────────────────
-const ST = { TITLE: 0, PLAYING: 1, PAUSED: 2, LEVEL_CLEAR: 3, GAME_OVER: 4 };
+const ST = { TITLE: 0, PLAYING: 1, PAUSED: 2, LEVEL_CLEAR: 3, GAME_OVER: 4, NAME_ENTRY: 5 };
 let st = ST.TITLE;
 
 // ── Persistent data ──────────────────────────────────────────────────────────
 let score = 0, lives = 3, level = 1;
 let hiScore = parseInt(localStorage.getItem('pp_hi') || '0');
+
+// ── Leaderboard ──────────────────────────────────────────────────────────────
+const LB_KEY  = 'pp_leaderboard';
+const LB_SIZE = 10;
+function lbGet()           { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
+function lbSave(e)         { localStorage.setItem(LB_KEY, JSON.stringify(e)); }
+function lbIsTop(s)        { const e = lbGet(); return s > 0 && (e.length < LB_SIZE || s > e[e.length-1].score); }
+function lbInsert(name, s) {
+  const e = lbGet();
+  e.push({ name: name.toUpperCase(), score: s, date: new Date().toISOString().slice(0,10) });
+  e.sort((a,b) => b.score - a.score);
+  if (e.length > LB_SIZE) e.length = LB_SIZE;
+  lbSave(e);
+}
+
+// ── Name entry state ─────────────────────────────────────────────────────────
+let nameChars  = ['A','A','A'];
+let nameCursor = 0;
+
+function prevNameChar() {
+  const c = nameChars[nameCursor].charCodeAt(0);
+  nameChars[nameCursor] = String.fromCharCode(c === 65 ? 90 : c - 1);
+  beep(660, 0.06, 'square', 0.12);
+}
+function nextNameChar() {
+  const c = nameChars[nameCursor].charCodeAt(0);
+  nameChars[nameCursor] = String.fromCharCode(c === 90 ? 65 : c + 1);
+  beep(880, 0.06, 'square', 0.12);
+}
+function advanceName() {
+  if (nameCursor < 2) {
+    nameCursor++;
+    beep(660, 0.08, 'triangle', 0.15);
+  } else {
+    lbInsert(nameChars.join(''), score);
+    st = ST.GAME_OVER;
+    sfxGameOver();
+  }
+}
+function backName() {
+  if (nameCursor > 0) { nameCursor--; beep(440, 0.08, 'square', 0.1); }
+}
 
 // ── Web Audio (arcade beeps) ─────────────────────────────────────────────────
 let _ac = null;
@@ -235,6 +277,14 @@ const keys = {};
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Space' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') e.preventDefault();
+  if (st === ST.NAME_ENTRY && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+
+  if (st === ST.NAME_ENTRY) {
+    if (e.code === 'ArrowUp')   { prevNameChar(); return; }
+    if (e.code === 'ArrowDown') { nextNameChar(); return; }
+    if (e.code === 'ArrowLeft') { backName(); return; }
+    if (e.code === 'ArrowRight' || e.code === 'Enter' || e.code === 'Space') { advanceName(); return; }
+  }
 
   if (e.code === 'KeyP') {
     if (st === ST.PLAYING) st = ST.PAUSED;
@@ -253,6 +303,12 @@ function bindTch(el, key) {
     e.preventDefault(); T[key] = true; el.classList.add('on');
     if (key === 'fire') T.fireEdge = true;
     if (_ac) _ac.resume();
+    // name entry touch controls
+    if (st === ST.NAME_ENTRY) {
+      if (key === 'left')  { prevNameChar(); return; }
+      if (key === 'right') { nextNameChar(); return; }
+      if (key === 'fire')  { advanceName(); return; }
+    }
     // state transitions on fire tap
     if (st === ST.TITLE)      startGame();
     if (st === ST.GAME_OVER)  st = ST.TITLE;
@@ -525,10 +581,16 @@ function hitPlayer() {
 }
 
 function doGameOver() {
-  st = ST.GAME_OVER;
   if (score > hiScore) { hiScore = score; localStorage.setItem('pp_hi', hiScore); }
-  sfxGameOver();
   updateHUD();
+  if (lbIsTop(score)) {
+    nameChars  = ['A','A','A'];
+    nameCursor = 0;
+    st = ST.NAME_ENTRY;
+  } else {
+    st = ST.GAME_OVER;
+    sfxGameOver();
+  }
 }
 
 function boom(x, y, col, count) {
@@ -580,6 +642,7 @@ function draw() {
   if (st === ST.PAUSED)      { drawField(); drawOverlay('PAUSED', '#70f0f3', 'PRESS P TO RESUME'); return; }
   if (st === ST.LEVEL_CLEAR) { drawField(); drawLevelClear(now); return; }
   if (st === ST.GAME_OVER)   { drawField(); drawGameOver(now); return; }
+  if (st === ST.NAME_ENTRY)  { drawField(); drawNameEntry(now); return; }
 
   drawField();
 }
@@ -955,6 +1018,80 @@ function drawGameOver(t) {
     ctx.font = '9px Silkscreen';
     ctx.fillText('PRESS SPACE / FIRE TO RETRY', W / 2, H / 2 + 66);
   }
+  ctx.restore();
+}
+
+function drawNameEntry(t) {
+  ctx.fillStyle = 'rgba(0,3,65,0.88)';
+  ctx.fillRect(0, 0, W, H);
+
+  // CRT scanlines
+  for (let y = 0; y < H; y += 4) { ctx.fillStyle = 'rgba(0,0,0,0.06)'; ctx.fillRect(0, y, W, 2); }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+  ctx.save();
+  ctx.shadowBlur = 20; ctx.shadowColor = '#70f0f3';
+  ctx.fillStyle = '#70f0f3'; ctx.font = '14px Silkscreen';
+  ctx.fillText('★ TOP 10 ★', W/2, H/2 - 108);
+  ctx.restore();
+
+  ctx.save();
+  ctx.shadowBlur = 10; ctx.shadowColor = '#d77eff';
+  ctx.fillStyle = '#d77eff'; ctx.font = '11px Silkscreen';
+  ctx.fillText('ENTER YOUR INITIALS', W/2, H/2 - 76);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
+  ctx.fillText('SCORE: ' + score.toString().padStart(5,'0'), W/2, H/2 - 54);
+  ctx.restore();
+
+  // Letter boxes
+  const boxW = 52, boxH = 64, gap = 18;
+  const totalW = 3*boxW + 2*gap;
+  const ox = W/2 - totalW/2;
+  const oy = H/2 - 28;
+
+  for (let i = 0; i < 3; i++) {
+    const bx = ox + i*(boxW+gap);
+    const isActive = i === nameCursor;
+    const pulse = isActive ? (0.6 + 0.4*Math.sin(t*4)) : 0;
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    if (isActive) { ctx.shadowBlur = 20*pulse; ctx.shadowColor = '#70f0f3'; ctx.strokeStyle = '#70f0f3'; }
+    else if (i < nameCursor) { ctx.shadowBlur = 6; ctx.shadowColor = '#d77eff'; ctx.strokeStyle = '#d77eff'; }
+    else { ctx.strokeStyle = '#39408c'; }
+    ctx.strokeRect(bx, oy, boxW, boxH);
+    ctx.restore();
+
+    ctx.save();
+    if (isActive) { ctx.shadowBlur = 14; ctx.shadowColor = '#70f0f3'; ctx.fillStyle = '#70f0f3'; }
+    else if (i < nameCursor) { ctx.fillStyle = '#d77eff'; }
+    else { ctx.fillStyle = '#676fbd'; }
+    ctx.font = '30px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(nameChars[i], bx+boxW/2, oy+boxH/2);
+    ctx.restore();
+
+    if (isActive) {
+      ctx.save();
+      ctx.fillStyle = '#70f0f3'; ctx.shadowBlur = 8; ctx.shadowColor = '#70f0f3';
+      ctx.font = '10px Silkscreen'; ctx.textAlign = 'center';
+      ctx.fillText('▲', bx+boxW/2, oy-14);
+      ctx.fillText('▼', bx+boxW/2, oy+boxH+14);
+      ctx.restore();
+    }
+  }
+
+  ctx.save();
+  ctx.fillStyle = '#676fbd'; ctx.font = '8px Silkscreen'; ctx.textAlign = 'center';
+  ctx.fillText('↑/↓ CHANGE    SPACE/ENTER CONFIRM    ← BACK', W/2, H/2 + 70);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = '#39408c'; ctx.font = '7px Silkscreen'; ctx.textAlign = 'center';
+  ctx.fillText('TOUCH: ◀/▶ CHANGE    FIRE CONFIRM', W/2, H/2 + 88);
   ctx.restore();
 }
 

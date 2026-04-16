@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Silkscreen&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000341;
+      color: #e3e3ff;
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100dvh;
+      background-image:
+        linear-gradient(to right, rgba(112,240,243,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(112,240,243,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .pixel-font { font-family: 'Silkscreen', cursive; }
+
+    /* Neon glow */
+    .glow-cyan   { text-shadow: 0 0 10px #70f0f3, 0 0 20px #70f0f3; }
+    .glow-green  { text-shadow: 0 0 10px #4dff91, 0 0 20px #4dff91; }
+    .glow-purple { text-shadow: 0 0 10px #d77eff, 0 0 20px #d77eff; }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(0,3,65,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(112,240,243,0.2);
+      box-shadow: 0 0 15px rgba(112,240,243,0.3);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 72px;
+    }
+
+    .logo {
+      font-size: 1.4rem; font-weight: 900; font-style: italic;
+      letter-spacing: -0.05em; text-transform: uppercase;
+      background: linear-gradient(135deg, #b8a0fb 0%, #d77eff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-decoration: none;
+    }
+
+    #back-btn {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: #70f0f3; text-decoration: none;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 8px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #back-btn:hover {
+      border-color: #70f0f3;
+      box-shadow: 0 0 10px rgba(112,240,243,0.4);
+    }
+
+    /* Main layout */
+    main {
+      max-width: 960px; margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* Page title */
+    .page-title {
+      display: flex; align-items: baseline; gap: 16px; margin-bottom: 48px;
+    }
+    .page-title h1 {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      color: #70f0f3;
+      text-shadow: 0 0 10px #70f0f3, 0 0 20px #70f0f3;
+      text-transform: uppercase; letter-spacing: 4px;
+    }
+    .page-title .line {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(112,240,243,0.4), transparent);
+    }
+
+    /* Game sections */
+    .games-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+    }
+    @media (max-width: 680px) {
+      .games-grid { grid-template-columns: 1fr; }
+    }
+
+    .game-section {}
+
+    .game-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+    }
+    .game-dot {
+      width: 10px; height: 10px; flex-shrink: 0;
+    }
+    .game-title {
+      font-family: 'Silkscreen', cursive;
+      font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    }
+    .game-title.cyan  { color: #70f0f3; text-shadow: 0 0 8px #70f0f3; }
+    .game-title.green { color: #4dff91; text-shadow: 0 0 8px #4dff91; }
+
+    /* Table */
+    .lb-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid rgba(57,64,140,0.5);
+    }
+
+    .lb-table th {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+      color: #676fbd; text-align: left;
+      padding: 10px 12px; border-bottom: 1px solid rgba(57,64,140,0.5);
+      background: rgba(0,6,98,0.4);
+    }
+    .lb-table th:last-child { text-align: right; }
+
+    .lb-table td {
+      padding: 10px 12px;
+      font-size: 13px; letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(57,64,140,0.2);
+    }
+    .lb-table tr:last-child td { border-bottom: none; }
+    .lb-table tr { background: rgba(0,4,80,0.3); transition: background 0.15s; }
+    .lb-table tr:hover { background: rgba(0,8,115,0.5); }
+
+    /* Rank cell */
+    .rank { font-family: 'Silkscreen', cursive; font-size: 11px; width: 36px; }
+    .rank-1 { color: #ffd84d; text-shadow: 0 0 8px #ffd84d; }
+    .rank-2 { color: #c0c8e8; text-shadow: 0 0 6px #c0c8e8; }
+    .rank-3 { color: #ff9a5c; text-shadow: 0 0 6px #ff9a5c; }
+    .rank-n { color: #39408c; }
+
+    /* Name cell */
+    .name {
+      font-family: 'Silkscreen', cursive; font-size: 14px;
+      letter-spacing: 4px; color: #e3e3ff;
+    }
+
+    /* Score cell */
+    .score {
+      text-align: right;
+      font-family: 'Silkscreen', cursive; font-size: 13px;
+      letter-spacing: 2px;
+    }
+    .score.cyan  { color: #70f0f3; }
+    .score.green { color: #4dff91; }
+
+    /* Date cell */
+    .date { font-size: 11px; color: #676fbd; text-align: right; }
+
+    /* Empty state */
+    .empty {
+      text-align: center; padding: 48px 0;
+      border: 1px solid rgba(57,64,140,0.4);
+      background: rgba(0,4,80,0.2);
+    }
+    .empty .icon {
+      font-family: 'Silkscreen', cursive; font-size: 28px;
+      color: rgba(103,111,189,0.4); margin-bottom: 16px;
+    }
+    .empty p {
+      font-family: 'Silkscreen', cursive; font-size: 9px;
+      letter-spacing: 2px; color: #39408c; text-transform: uppercase;
+    }
+
+    /* Background glows */
+    .bg-glow-1 {
+      position: fixed; bottom: 0; right: 0; width: 384px; height: 288px;
+      background: radial-gradient(ellipse at bottom right, rgba(112,240,243,0.08), transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+    .bg-glow-2 {
+      position: fixed; top: 0; left: 0; width: 384px; height: 384px;
+      background: radial-gradient(ellipse at top left, rgba(215,126,255,0.08), transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Nico's Arcade Room</a>
+  <a href="index.html" id="back-btn">← Back</a>
+</header>
+
+<main>
+  <div class="page-title">
+    <h1>Leaderboard</h1>
+    <div class="line"></div>
+  </div>
+
+  <div class="games-grid">
+
+    <!-- Pixel Pilot -->
+    <section class="game-section" id="pp-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none">
+          <rect width="10" height="10" fill="#70f0f3" style="filter:drop-shadow(0 0 4px #70f0f3)"/>
+        </svg>
+        <span class="game-title cyan">Pixel Pilot</span>
+      </div>
+      <div id="pp-board"></div>
+    </section>
+
+    <!-- Dino Math -->
+    <section class="game-section" id="dh-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none">
+          <rect width="10" height="10" fill="#4dff91" style="filter:drop-shadow(0 0 4px #4dff91)"/>
+        </svg>
+        <span class="game-title green">Dino Math</span>
+      </div>
+      <div id="dh-board"></div>
+    </section>
+
+  </div>
+</main>
+
+<div class="bg-glow-1" aria-hidden="true"></div>
+<div class="bg-glow-2" aria-hidden="true"></div>
+
+<script>
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function renderBoard(containerId, gameKey, accentClass) {
+  const container = document.getElementById(containerId);
+  const entries   = JSON.parse(localStorage.getItem(gameKey + '_leaderboard') || '[]');
+
+  if (entries.length === 0) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="icon">?</div>
+        <p>No scores yet</p>
+        <p style="margin-top:8px;font-size:8px;color:#1a1f5a">Play the game to set a record</p>
+      </div>`;
+    return;
+  }
+
+  const rows = entries.map((e, i) => {
+    const rankLabel = i < 3
+      ? `<span class="rank rank-${i+1}">${MEDALS[i]}</span>`
+      : `<span class="rank rank-n">${String(i+1).padStart(2,'0')}</span>`;
+    return `
+      <tr>
+        <td>${rankLabel}</td>
+        <td><span class="name">${e.name}</span></td>
+        <td class="score ${accentClass}">${e.score.toString().padStart(6,'0')}</td>
+        <td class="date">${e.date || ''}</td>
+      </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <table class="lb-table" aria-label="${gameKey} leaderboard">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Player</th>
+          <th style="text-align:right">Score</th>
+          <th style="text-align:right">Date</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderAll() {
+  renderBoard('pp-board', 'pp', 'cyan');
+  renderBoard('dh-board', 'dh', 'green');
+}
+
+renderAll();
+
+</script>
+
+</body>
+</html>
