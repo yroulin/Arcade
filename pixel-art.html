@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>PIXEL ART – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#000341; color:#e3e3ff; font-family:'Silkscreen',cursive;
+      min-height:100dvh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:10px;
+      background-image:linear-gradient(to right,rgba(112,240,243,.04) 1px,transparent 1px),
+        linear-gradient(to bottom,rgba(112,240,243,.04) 1px,transparent 1px);
+      background-size:40px 40px; user-select:none;
+      padding:70px 10px 20px;
+    }
+    #back-btn {
+      position:fixed; top:14px; left:14px;
+      background:rgba(0,3,65,.85); border:1px solid rgba(112,240,243,.3);
+      color:#70f0f3; font-family:'Silkscreen',cursive; font-size:9px;
+      padding:7px 12px; cursor:pointer; letter-spacing:2px; text-decoration:none;
+      z-index:50; transition:border-color .2s,box-shadow .2s;
+    }
+    #back-btn:hover { border-color:#70f0f3; box-shadow:0 0 10px rgba(112,240,243,.35); }
+
+    #title-bar {
+      display:flex; align-items:center; gap:12px;
+      font-size:11px; letter-spacing:3px; color:#d77eff;
+      text-shadow:0 0 8px #d77eff;
+    }
+
+    #canvas {
+      border:2px solid rgba(112,240,243,.25);
+      box-shadow:0 0 20px rgba(112,240,243,.1);
+      cursor:crosshair; touch-action:none; display:block;
+      image-rendering:pixelated;
+    }
+
+    #palette {
+      display:flex; flex-wrap:wrap; gap:5px;
+      width:min(380px, 94vw); justify-content:center;
+    }
+    .swatch {
+      width:28px; height:28px; cursor:pointer;
+      border:2px solid transparent; transition:border-color .1s,transform .1s;
+      flex-shrink:0;
+    }
+    .swatch:hover { transform:scale(1.1); }
+    .swatch.active { border-color:#fff; box-shadow:0 0 8px rgba(255,255,255,.6); transform:scale(1.12); }
+
+    #tools {
+      display:flex; gap:8px; align-items:center;
+    }
+    .tool-btn {
+      padding:7px 14px; background:rgba(0,6,98,.6);
+      border:1px solid #39408c; color:#9da5f7;
+      font-family:'Silkscreen',cursive; font-size:8px; letter-spacing:1px;
+      cursor:pointer; transition:all .15s;
+    }
+    .tool-btn:hover  { border-color:#70f0f3; color:#70f0f3; }
+    .tool-btn.active { background:#000873; border-color:#70f0f3; color:#70f0f3; box-shadow:0 0 8px rgba(112,240,243,.3); }
+    .tool-btn.danger:hover { border-color:#ff6e84; color:#ff6e84; }
+
+    @media (max-height: 700px) {
+      .swatch { width:24px; height:24px; }
+    }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+<a href="index.html" id="back-btn">← BACK</a>
+
+<div id="title-bar">
+  <span>★</span><span>PIXEL ART STUDIO</span><span>★</span>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<div id="palette"></div>
+
+<div id="tools">
+  <button class="tool-btn active" id="btn-draw">✏ DRAW</button>
+  <button class="tool-btn"        id="btn-fill">🪣 FILL</button>
+  <button class="tool-btn"        id="btn-erase">◻ ERASE</button>
+  <button class="tool-btn danger" id="btn-clear">✕ CLEAR</button>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const COLS=24, ROWS=20, CELL=16;
+const PALETTE=[
+  '#000000','#ffffff','#ff6e84','#ff9a5c',
+  '#ffd84d','#4dff91','#70f0f3','#9da5f7',
+  '#333333','#888888','#8b0000','#8b4513',
+  '#b8860b','#006400','#d77eff','#ff69b4',
+];
+
+const cv=document.getElementById('canvas');
+const ctx=cv.getContext('2d');
+cv.width=COLS*CELL; cv.height=ROWS*CELL;
+cv.style.width=(COLS*CELL)+'px'; cv.style.height=(ROWS*CELL)+'px';
+const maxW=window.innerWidth*0.94;
+if(COLS*CELL>maxW){ const s=maxW/(COLS*CELL); cv.style.width=maxW+'px'; cv.style.height=(ROWS*CELL*s)+'px'; }
+
+// pixel grid data (colour strings, '' = empty/white bg)
+let grid=Array.from({length:ROWS},()=>new Array(COLS).fill(''));
+let curColor=PALETTE[1]; // start white
+let tool='draw'; // draw | fill | erase
+let painting=false;
+
+// ── Draw ──────────────────────────────────────────────────────────────────────
+function render(){
+  ctx.fillStyle='#111122';
+  ctx.fillRect(0,0,cv.width,cv.height);
+  // grid lines
+  ctx.strokeStyle='rgba(57,64,140,.35)';
+  ctx.lineWidth=.5;
+  for(let c=0;c<=COLS;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,ROWS*CELL);ctx.stroke();}
+  for(let r=0;r<=ROWS;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(COLS*CELL,r*CELL);ctx.stroke();}
+  // pixels
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    if(grid[r][c]){ ctx.fillStyle=grid[r][c]; ctx.fillRect(c*CELL+1,r*CELL+1,CELL-1,CELL-1); }
+  }
+}
+render();
+
+// ── Palette ──────────────────────────────────────────────────────────────────
+const palDiv=document.getElementById('palette');
+PALETTE.forEach((col,i)=>{
+  const sw=document.createElement('div');
+  sw.className='swatch'+(i===1?' active':'');
+  sw.style.background=col;
+  sw.dataset.col=col;
+  sw.addEventListener('click',()=>selectColor(col,sw));
+  palDiv.appendChild(sw);
+});
+function selectColor(col,sw){
+  curColor=col;
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('active'));
+  sw.classList.add('active');
+  if(tool==='erase') setTool('draw');
+}
+
+// ── Tools ─────────────────────────────────────────────────────────────────────
+function setTool(t){
+  tool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-'+t).classList.add('active');
+}
+document.getElementById('btn-draw' ).addEventListener('click',()=>setTool('draw'));
+document.getElementById('btn-fill' ).addEventListener('click',()=>setTool('fill'));
+document.getElementById('btn-erase').addEventListener('click',()=>setTool('erase'));
+document.getElementById('btn-clear').addEventListener('click',()=>{
+  if(confirm('Clear the canvas?')){ grid=Array.from({length:ROWS},()=>new Array(COLS).fill('')); render(); }
+});
+
+// ── Paint ─────────────────────────────────────────────────────────────────────
+function cellFromEvent(e){
+  const rect=cv.getBoundingClientRect();
+  const sx=cv.width/rect.width, sy=cv.height/rect.height;
+  let cx,cy;
+  if(e.touches){ cx=e.touches[0].clientX; cy=e.touches[0].clientY; }
+  else { cx=e.clientX; cy=e.clientY; }
+  const c=Math.floor((cx-rect.left)*sx/CELL);
+  const r=Math.floor((cy-rect.top)*sy/CELL);
+  return {c,r};
+}
+function paint(e){
+  const {c,r}=cellFromEvent(e);
+  if(c<0||c>=COLS||r<0||r>=ROWS)return;
+  if(tool==='fill'){ floodFill(r,c,grid[r][c],curColor); render(); return; }
+  const col=tool==='erase'?'':curColor;
+  if(grid[r][c]===col)return;
+  grid[r][c]=col;
+  render();
+}
+
+function floodFill(r,c,target,replacement){
+  if(target===replacement)return;
+  const stack=[[r,c]];
+  while(stack.length){
+    const [cr,cc]=stack.pop();
+    if(cr<0||cr>=ROWS||cc<0||cc>=COLS)continue;
+    if(grid[cr][cc]!==target)continue;
+    grid[cr][cc]=replacement;
+    stack.push([cr-1,cc],[cr+1,cc],[cr,cc-1],[cr,cc+1]);
+  }
+}
+
+cv.addEventListener('mousedown', e=>{ painting=true; paint(e); });
+cv.addEventListener('mousemove', e=>{ if(painting) paint(e); });
+document.addEventListener('mouseup', ()=>{ painting=false; });
+
+cv.addEventListener('touchstart', e=>{ e.preventDefault(); painting=true; paint(e); },{passive:false});
+cv.addEventListener('touchmove',  e=>{ e.preventDefault(); if(painting) paint(e); },{passive:false});
+cv.addEventListener('touchend',   e=>{ e.preventDefault(); painting=false; },{passive:false});
+
+// prevent context menu on long press
+cv.addEventListener('contextmenu', e=>e.preventDefault());
+
+})();
+</script>
+</body>
+</html>

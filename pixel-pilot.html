@@ -192,18 +192,16 @@ let st = ST.TITLE;
 let score = 0, lives = 3, level = 1;
 let hiScore = parseInt(localStorage.getItem('pp_hi') || '0');
 
-// ── Leaderboard ──────────────────────────────────────────────────────────────
-const LB_KEY  = 'pp_leaderboard';
-const LB_SIZE = 10;
-function lbGet()           { return JSON.parse(localStorage.getItem(LB_KEY) || '[]'); }
-function lbSave(e)         { localStorage.setItem(LB_KEY, JSON.stringify(e)); }
-function lbIsTop(s)        { const e = lbGet(); return s > 0 && (e.length < LB_SIZE || s > e[e.length-1].score); }
+// ── Leaderboard (Supabase) ────────────────────────────────────────────────────
+const SB_URL = 'https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+function lbIsTop(s) { return s > 0; }
 function lbInsert(name, s) {
-  const e = lbGet();
-  e.push({ name: name.toUpperCase(), score: s, date: new Date().toISOString().slice(0,10) });
-  e.sort((a,b) => b.score - a.score);
-  if (e.length > LB_SIZE) e.length = LB_SIZE;
-  lbSave(e);
+  fetch(SB_URL + '/rest/v1/scores', {
+    method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify({ player_name: name.toUpperCase(), game: 'pixel-pilot', score: s })
+  }).catch(() => {});
 }
 
 // ── Name entry state ─────────────────────────────────────────────────────────

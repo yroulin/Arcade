@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>SIMON – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#000341; color:#e3e3ff; font-family:'Silkscreen',cursive;
+      min-height:100dvh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background-image:linear-gradient(to right,rgba(112,240,243,.04) 1px,transparent 1px),
+        linear-gradient(to bottom,rgba(112,240,243,.04) 1px,transparent 1px);
+      background-size:40px 40px; user-select:none; overflow:hidden;
+    }
+    #back-btn {
+      position:fixed; top:14px; left:14px;
+      background:rgba(0,3,65,.85); border:1px solid rgba(112,240,243,.3);
+      color:#70f0f3; font-family:'Silkscreen',cursive; font-size:9px;
+      padding:7px 12px; cursor:pointer; letter-spacing:2px; text-decoration:none;
+      z-index:50; transition:border-color .2s,box-shadow .2s;
+    }
+    #back-btn:hover { border-color:#70f0f3; box-shadow:0 0 10px rgba(112,240,243,.35); }
+    #hud {
+      display:flex; justify-content:space-between; align-items:flex-end;
+      width:320px; max-width:92vw; padding-bottom:10px;
+    }
+    .hl { color:#9da5f7; font-size:9px; letter-spacing:2px; }
+    .hv { color:#70f0f3; font-size:16px; letter-spacing:2px; text-shadow:0 0 10px #70f0f3; }
+    .hr { text-align:right; }
+    #grid {
+      display:grid; grid-template-columns:1fr 1fr; gap:10px;
+      width:320px; max-width:92vw;
+    }
+    .sbt {
+      aspect-ratio:1; border:none; cursor:pointer;
+      opacity:.3; transition:opacity .08s,box-shadow .08s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .sbt.red    { background:#ff6e84; }
+    .sbt.blue   { background:#70f0f3; }
+    .sbt.green  { background:#4dff91; }
+    .sbt.yellow { background:#ffd84d; }
+    .sbt.lit { opacity:1; }
+    .sbt.lit.red    { box-shadow:0 0 45px 8px #ff6e84; }
+    .sbt.lit.blue   { box-shadow:0 0 45px 8px #70f0f3; }
+    .sbt.lit.green  { box-shadow:0 0 45px 8px #4dff91; }
+    .sbt.lit.yellow { box-shadow:0 0 45px 8px #ffd84d; }
+    #status {
+      width:320px; max-width:92vw; text-align:center;
+      padding:12px 8px 0; font-size:9px; letter-spacing:2px;
+      color:#9da5f7; min-height:36px;
+    }
+    #start-btn {
+      margin-top:14px; padding:14px 48px; background:#70f0f3; color:#002829;
+      font-family:'Silkscreen',cursive; font-size:11px; letter-spacing:3px;
+      border:none; cursor:pointer; box-shadow:0 4px 0 #006264;
+      transition:box-shadow .1s,transform .1s;
+    }
+    #start-btn:active { transform:translateY(4px); box-shadow:0 0 0 #006264; }
+    #start-btn:hover  { box-shadow:0 4px 24px rgba(112,240,243,.7),0 4px 0 #006264; }
+    /* name entry */
+    #neo { display:none; position:fixed; inset:0; background:rgba(0,3,65,.94);
+      z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+    #neo.show { display:flex; }
+    .nt { font-size:14px; color:#70f0f3; text-shadow:0 0 12px #70f0f3; }
+    .ns { font-size:10px; color:#d77eff; letter-spacing:2px; }
+    .nr { display:flex; gap:14px; }
+    .nc {
+      width:56px; height:68px; border:2px solid #39408c;
+      display:flex; align-items:center; justify-content:center;
+      font-size:32px; color:#676fbd; position:relative;
+    }
+    .nc.cur  { border-color:#70f0f3; color:#70f0f3; box-shadow:0 0 16px rgba(112,240,243,.4); }
+    .nc.done { border-color:#d77eff; color:#d77eff; }
+    .nc.cur::before { content:'▲'; position:absolute; top:-22px; font-size:10px; color:#70f0f3; }
+    .nc.cur::after  { content:'▼'; position:absolute; bottom:-22px; font-size:10px; color:#70f0f3; }
+    .nh { font-size:8px; color:#676fbd; letter-spacing:1px; text-align:center; line-height:2; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+<a href="index.html" id="back-btn">← BACK</a>
+<div id="hud">
+  <div><div class="hl">ROUND</div><div class="hv" id="hud-round">00</div></div>
+  <div style="text-align:center"><div class="hl" style="color:#d77eff;font-size:11px;letter-spacing:3px">SIMON</div><div class="hl" style="margin-top:2px">MEMORY</div></div>
+  <div class="hr"><div class="hl">BEST</div><div class="hv" id="hud-best">00</div></div>
+</div>
+<div id="grid">
+  <button class="sbt red"    data-c="red"    aria-label="Red"></button>
+  <button class="sbt blue"   data-c="blue"   aria-label="Blue"></button>
+  <button class="sbt green"  data-c="green"  aria-label="Green"></button>
+  <button class="sbt yellow" data-c="yellow" aria-label="Yellow"></button>
+</div>
+<div id="status">PRESS START</div>
+<button id="start-btn">START GAME</button>
+
+<div id="neo">
+  <div class="nt">★ TOP 10 ★</div>
+  <div class="ns">ENTER YOUR INITIALS</div>
+  <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
+  <div class="nr">
+    <div class="nc cur" id="nc0">A</div>
+    <div class="nc"     id="nc1">A</div>
+    <div class="nc"     id="nc2">A</div>
+  </div>
+  <div class="nh">↑/↓ CHANGE &nbsp;|&nbsp; SPACE/ENTER CONFIRM &nbsp;|&nbsp; ← BACK<br>TOUCH: RED=PREV &nbsp; BLUE=NEXT &nbsp; GREEN=OK</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const ST={IDLE:0,SHOW:1,INPUT:2,OVER:3,NAME:4};
+let st=ST.IDLE, seq=[], pos=0, level=0;
+let hiScore=parseInt(localStorage.getItem('simon_hi')||'0');
+
+const SB_URL='https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+function lbTop(s){return s>0;}
+function lbAdd(name,s){
+  fetch(SB_URL+'/rest/v1/scores',{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({player_name:name.toUpperCase(),game:'simon',score:s})
+  }).catch(()=>{});
+}
+
+let _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+const FQ={red:262,blue:330,green:392,yellow:523};
+function tone(f,d=.38,v=.28){
+  try{const a=ac(),o=a.createOscillator(),g=a.createGain();
+  o.connect(g);g.connect(a.destination);o.type='sine';o.frequency.value=f;
+  g.gain.setValueAtTime(v,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);
+  o.start();o.stop(a.currentTime+d);}catch(_){}
+}
+function sfxBad(){
+  try{const a=ac(),o=a.createOscillator(),g=a.createGain();
+  o.connect(g);g.connect(a.destination);o.type='sawtooth';
+  o.frequency.setValueAtTime(180,a.currentTime);o.frequency.exponentialRampToValueAtTime(60,a.currentTime+.7);
+  g.gain.setValueAtTime(.4,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+.7);
+  o.start();o.stop(a.currentTime+.7);}catch(_){}
+}
+function sfxWin(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.14,.2),i*90));}
+
+let nc=['A','A','A'],ni=0;
+function neShow(){
+  nc=['A','A','A'];ni=0;neRender();
+  document.getElementById('ne-sc').textContent='ROUND: '+String(level).padStart(2,'0');
+  document.getElementById('neo').classList.add('show');st=ST.NAME;
+}
+function neRender(){
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('nc'+i);
+    el.textContent=nc[i];
+    el.className='nc'+(i===ni?' cur':i<ni?' done':'');
+  }
+}
+function nePr(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===65?90:c-1);neRender();tone(660,.06,.1);}
+function neNx(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===90?65:c+1);neRender();tone(880,.06,.1);}
+function neOk(){
+  if(ni<2){ni++;neRender();tone(660,.08,.14);}
+  else{lbAdd(nc.join(''),level);document.getElementById('neo').classList.remove('show');showOver();}
+}
+function neBk(){if(ni>0){ni--;neRender();tone(440,.08,.1);}}
+
+const COLS=['red','blue','green','yellow'];
+const btns=document.querySelectorAll('.sbt');
+
+function startGame(){
+  if(_ac)_ac.resume();
+  seq=[];pos=0;level=0;st=ST.SHOW;
+  document.getElementById('start-btn').style.display='none';
+  setStatus('');updateHUD();
+  setTimeout(addRound,600);
+}
+function addRound(){
+  level++;seq.push(COLS[Math.floor(Math.random()*4)]);
+  updateHUD();setStatus('WATCH...');lock();playSeq(0);
+}
+function playSeq(i){
+  if(i>=seq.length){setTimeout(()=>{st=ST.INPUT;pos=0;unlock();setStatus('YOUR TURN — ROUND '+String(level).padStart(2,'0'));},400);return;}
+  const spd=Math.max(280,580-level*18);
+  setTimeout(()=>{lit(seq[i]);setTimeout(()=>{unlit(seq[i]);playSeq(i+1);},spd*.62);},i===0?300:spd*.45);
+}
+function lit(c){document.querySelector('.sbt.'+c).classList.add('lit');tone(FQ[c]);}
+function unlit(c){document.querySelector('.sbt.'+c).classList.remove('lit');}
+function lock(){btns.forEach(b=>b.disabled=true);}
+function unlock(){btns.forEach(b=>b.disabled=false);}
+
+function click(c){
+  if(st!==ST.INPUT)return;
+  if(_ac)_ac.resume();
+  lit(c);setTimeout(()=>unlit(c),180);
+  if(c===seq[pos]){
+    pos++;
+    if(pos===seq.length){lock();sfxWin();setStatus('✓ CORRECT!');setTimeout(addRound,920);}
+  } else {
+    st=ST.OVER;lock();sfxBad();
+    btns.forEach(b=>b.classList.add('lit'));
+    setTimeout(()=>btns.forEach(b=>b.classList.remove('lit')),400);
+    setStatus('✗ WRONG — GAME OVER — ROUND '+String(level).padStart(2,'0'));
+    if(level>hiScore){hiScore=level;localStorage.setItem('simon_hi',hiScore);}
+    updateHUD();
+    setTimeout(()=>{if(lbTop(level))neShow();else showOver();},1300);
+  }
+}
+function showOver(){
+  st=ST.IDLE;
+  const b=document.getElementById('start-btn');b.textContent='PLAY AGAIN';b.style.display='';
+}
+function setStatus(t){document.getElementById('status').textContent=t;}
+function updateHUD(){
+  document.getElementById('hud-round').textContent=String(level).padStart(2,'0');
+  document.getElementById('hud-best').textContent=String(hiScore).padStart(2,'0');
+}
+updateHUD();
+
+btns.forEach(b=>{
+  b.addEventListener('click',()=>click(b.dataset.c));
+  b.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(st===ST.NAME){
+      const c=b.dataset.c;
+      if(c==='red')nePr();else if(c==='blue')neNx();else if(c==='yellow')neBk();else if(c==='green')neOk();
+      return;
+    }
+    click(b.dataset.c);
+  },{passive:false});
+});
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.addEventListener('keydown',e=>{
+  if(_ac)_ac.resume();
+  if(st===ST.NAME){
+    if(e.code==='ArrowUp'){e.preventDefault();nePr();return;}
+    if(e.code==='ArrowDown'){e.preventDefault();neNx();return;}
+    if(e.code==='ArrowLeft'){e.preventDefault();neBk();return;}
+    if(e.code==='ArrowRight'||e.code==='Enter'||e.code==='Space'){e.preventDefault();neOk();return;}
+  }
+  if(st===ST.IDLE&&(e.code==='Space'||e.code==='Enter'))startGame();
+  if(st===ST.INPUT){
+    if(e.code==='Digit1'||e.code==='KeyQ')click('red');
+    if(e.code==='Digit2'||e.code==='KeyW')click('blue');
+    if(e.code==='Digit3'||e.code==='KeyA')click('green');
+    if(e.code==='Digit4'||e.code==='KeyS')click('yellow');
+  }
+});
+})();
+</script>
+</body>
+</html>

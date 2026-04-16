@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>WHACK-A-MOLE – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#000341; color:#e3e3ff; font-family:'Silkscreen',cursive;
+      min-height:100dvh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background-image:linear-gradient(to right,rgba(112,240,243,.04) 1px,transparent 1px),
+        linear-gradient(to bottom,rgba(112,240,243,.04) 1px,transparent 1px);
+      background-size:40px 40px; user-select:none;
+    }
+    #back-btn {
+      position:fixed; top:14px; left:14px;
+      background:rgba(0,3,65,.85); border:1px solid rgba(112,240,243,.3);
+      color:#70f0f3; font-family:'Silkscreen',cursive; font-size:9px;
+      padding:7px 12px; cursor:pointer; letter-spacing:2px; text-decoration:none;
+      z-index:50; transition:border-color .2s,box-shadow .2s;
+    }
+    #back-btn:hover { border-color:#70f0f3; box-shadow:0 0 10px rgba(112,240,243,.35); }
+    #hud {
+      display:flex; justify-content:space-between; align-items:flex-end;
+      width:360px; max-width:94vw; padding-bottom:10px;
+    }
+    .hl { color:#9da5f7; font-size:9px; letter-spacing:2px; }
+    .hv { color:#70f0f3; font-size:16px; letter-spacing:2px; text-shadow:0 0 10px #70f0f3; }
+    .hr { text-align:right; }
+    #timer-val { color:#ffd84d; text-shadow:0 0 10px #ffd84d; }
+    #timer-val.urgent { color:#ff6e84; text-shadow:0 0 10px #ff6e84; animation:pulse .5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
+
+    #grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+      width:360px; max-width:94vw;
+    }
+    .hole {
+      aspect-ratio:1; background:#000662; border:2px solid #39408c;
+      position:relative; overflow:hidden; cursor:default;
+      border-radius:50%; transition:border-color .1s;
+    }
+    .hole.active { border-color:#ffd84d; box-shadow:0 0 20px rgba(255,216,77,.3); }
+    .hole.bonked  { border-color:#ff6e84; box-shadow:0 0 20px rgba(255,110,132,.5); }
+    .mole {
+      position:absolute; left:50%; transform:translateX(-50%);
+      font-size:clamp(36px,8vw,52px); line-height:1;
+      bottom:-110%; transition:bottom .14s ease-out;
+      pointer-events:none;
+    }
+    .hole.active .mole { bottom:8%; }
+    .hit-pop {
+      position:absolute; top:14%; left:50%; transform:translateX(-50%);
+      font-family:'Silkscreen',cursive; font-size:12px; color:#ffd84d;
+      pointer-events:none; animation:pop .55s ease-out forwards;
+    }
+    @keyframes pop {
+      0%  { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+      100%{ opacity:0; transform:translateX(-50%) translateY(-28px) scale(.7); }
+    }
+    .bonk-anim { animation:bonk .3s ease-out forwards; }
+    @keyframes bonk { 0%{transform:translateX(-50%) scale(1)} 40%{transform:translateX(-50%) scale(1.3) rotate(-20deg)} 100%{transform:translateX(-50%) scale(0) rotate(40deg);bottom:60%;} }
+
+    #status-bar {
+      width:360px; max-width:94vw; text-align:center;
+      padding:10px 8px 0; font-size:9px; letter-spacing:2px;
+      color:#9da5f7; min-height:34px;
+    }
+    #start-btn {
+      margin-top:14px; padding:14px 48px; background:#ffd84d; color:#000;
+      font-family:'Silkscreen',cursive; font-size:11px; letter-spacing:3px;
+      border:none; cursor:pointer; box-shadow:0 4px 0 #a08000;
+      transition:box-shadow .1s,transform .1s;
+    }
+    #start-btn:active { transform:translateY(4px); box-shadow:0 0 0 #a08000; }
+    #start-btn:hover  { box-shadow:0 4px 24px rgba(255,216,77,.6),0 4px 0 #a08000; }
+
+    /* name entry */
+    #neo { display:none; position:fixed; inset:0; background:rgba(0,3,65,.94);
+      z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+    #neo.show { display:flex; }
+    .nt { font-size:14px; color:#70f0f3; text-shadow:0 0 12px #70f0f3; }
+    .ns { font-size:10px; color:#d77eff; letter-spacing:2px; }
+    .nr { display:flex; gap:14px; }
+    .nc {
+      width:56px; height:68px; border:2px solid #39408c;
+      display:flex; align-items:center; justify-content:center;
+      font-size:32px; color:#676fbd; position:relative;
+    }
+    .nc.cur  { border-color:#70f0f3; color:#70f0f3; box-shadow:0 0 16px rgba(112,240,243,.4); }
+    .nc.done { border-color:#d77eff; color:#d77eff; }
+    .nc.cur::before { content:'▲'; position:absolute; top:-22px; font-size:10px; color:#70f0f3; }
+    .nc.cur::after  { content:'▼'; position:absolute; bottom:-22px; font-size:10px; color:#70f0f3; }
+    .nh { font-size:8px; color:#676fbd; letter-spacing:1px; text-align:center; line-height:2; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+<a href="index.html" id="back-btn">← BACK</a>
+<div id="hud">
+  <div><div class="hl">SCORE</div><div class="hv" id="hud-score">000</div></div>
+  <div style="text-align:center"><div class="hl" style="color:#ffd84d;font-size:11px;letter-spacing:3px">WHACK!</div><div class="hl" style="margin-top:2px">A MOLE</div></div>
+  <div class="hr"><div class="hl">TIME</div><div class="hv" id="timer-val">60</div></div>
+</div>
+<div id="grid">
+  <div class="hole" data-i="0"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="1"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="2"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="3"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="4"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="5"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="6"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="7"><div class="mole">🐹</div></div>
+  <div class="hole" data-i="8"><div class="mole">🐹</div></div>
+</div>
+<div id="status-bar">PRESS START</div>
+<button id="start-btn">START GAME</button>
+
+<div id="neo">
+  <div class="nt">★ TOP 10 ★</div>
+  <div class="ns">ENTER YOUR INITIALS</div>
+  <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
+  <div class="nr">
+    <div class="nc cur" id="nc0">A</div>
+    <div class="nc"     id="nc1">A</div>
+    <div class="nc"     id="nc2">A</div>
+  </div>
+  <div class="nh">↑/↓ CHANGE &nbsp;|&nbsp; SPACE/ENTER CONFIRM &nbsp;|&nbsp; ← BACK</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const ST={IDLE:0,PLAY:1,OVER:2,NAME:3};
+let st=ST.IDLE, score=0, timeLeft=60, hiScore=parseInt(localStorage.getItem('wam_hi')||'0');
+let spawnTimer=null, countTimer=null;
+const holes=document.querySelectorAll('.hole');
+const moleTOs=new Array(9).fill(null); // timeout per hole
+
+const SB_URL='https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+function lbTop(s){return s>0;}
+function lbAdd(name,s){
+  fetch(SB_URL+'/rest/v1/scores',{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({player_name:name.toUpperCase(),game:'whack-a-mole',score:s})
+  }).catch(()=>{});
+}
+
+let _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+function beep(f,d=.1,v=.25,tp='square'){
+  try{const a=ac(),o=a.createOscillator(),g=a.createGain();
+  o.connect(g);g.connect(a.destination);o.type=tp;o.frequency.value=f;
+  g.gain.setValueAtTime(v,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);
+  o.start();o.stop(a.currentTime+d);}catch(_){}
+}
+function sfxHit(){ beep(880,.12,.3,'triangle'); }
+function sfxMiss(){ beep(200,.18,.2,'sawtooth'); }
+function sfxEnd(){ [392,349,294,196].forEach((f,i)=>setTimeout(()=>beep(f,.2,.2,'sawtooth'),i*130)); }
+
+let nc=['A','A','A'],ni=0;
+function neShow(){
+  nc=['A','A','A'];ni=0;neRender();
+  document.getElementById('ne-sc').textContent='SCORE: '+String(score).padStart(3,'0');
+  document.getElementById('neo').classList.add('show');st=ST.NAME;
+}
+function neRender(){
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('nc'+i);
+    el.textContent=nc[i];
+    el.className='nc'+(i===ni?' cur':i<ni?' done':'');
+  }
+}
+function nePr(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===65?90:c-1);neRender();beep(660,.06,.1);}
+function neNx(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===90?65:c+1);neRender();beep(880,.06,.1);}
+function neOk(){
+  if(ni<2){ni++;neRender();beep(660,.08,.14);}
+  else{lbAdd(nc.join(''),score);document.getElementById('neo').classList.remove('show');showOver();}
+}
+function neBk(){if(ni>0){ni--;neRender();beep(440,.08,.1);}}
+
+function startGame(){
+  if(_ac)_ac.resume();
+  score=0;timeLeft=60;st=ST.PLAY;
+  holes.forEach(h=>{h.classList.remove('active','bonked');});
+  document.getElementById('start-btn').style.display='none';
+  setStatus('');updateHUD();
+  startSpawning();
+  countTimer=setInterval(tick,1000);
+}
+
+function tick(){
+  timeLeft--;
+  updateHUD();
+  const tv=document.getElementById('timer-val');
+  if(timeLeft<=10)tv.classList.add('urgent'); else tv.classList.remove('urgent');
+  if(timeLeft<=0) endGame();
+}
+
+function startSpawning(){
+  scheduleNext();
+}
+function scheduleNext(){
+  if(st!==ST.PLAY)return;
+  const delay=Math.max(400,900-Math.min(score,400)*0.8);
+  spawnTimer=setTimeout(spawnMole,delay);
+}
+function spawnMole(){
+  if(st!==ST.PLAY)return;
+  // find inactive holes
+  const inactive=[...holes].filter(h=>!h.classList.contains('active'));
+  if(inactive.length===0){scheduleNext();return;}
+  const h=inactive[Math.floor(Math.random()*inactive.length)];
+  const i=parseInt(h.dataset.i);
+  h.classList.add('active');
+  const stayMs=Math.max(700,1400-Math.min(score,400)*0.9);
+  moleTOs[i]=setTimeout(()=>{
+    h.classList.remove('active','bonked');
+    const m=h.querySelector('.mole');
+    m.style.animation='';m.textContent='🐹';
+  },stayMs);
+  scheduleNext();
+}
+
+function whack(h){
+  if(st!==ST.PLAY)return;
+  if(!h.classList.contains('active'))return;
+  const i=parseInt(h.dataset.i);
+  clearTimeout(moleTOs[i]);
+  h.classList.remove('active');
+  h.classList.add('bonked');
+  const m=h.querySelector('.mole');
+  m.textContent='💫';
+  sfxHit();
+  score++;updateHUD();
+  // pop label
+  const pop=document.createElement('div');
+  pop.className='hit-pop';pop.textContent='+1';
+  h.appendChild(pop);
+  setTimeout(()=>{pop.remove();},560);
+  setTimeout(()=>{
+    h.classList.remove('bonked');
+    m.textContent='🐹';m.style.animation='';
+  },320);
+}
+
+function endGame(){
+  st=ST.OVER;
+  clearTimeout(spawnTimer);clearInterval(countTimer);
+  holes.forEach((h,i)=>{clearTimeout(moleTOs[i]);h.classList.remove('active','bonked');});
+  sfxEnd();
+  if(score>hiScore){hiScore=score;localStorage.setItem('wam_hi',hiScore);}
+  updateHUD();
+  setTimeout(()=>{if(lbTop(score))neShow();else showOver();},900);
+}
+function showOver(){
+  st=ST.IDLE;
+  setStatus('GAME OVER — SCORE: '+String(score).padStart(3,'0'));
+  const b=document.getElementById('start-btn');b.textContent='PLAY AGAIN';b.style.display='';
+}
+function setStatus(t){document.getElementById('status-bar').textContent=t;}
+function updateHUD(){
+  document.getElementById('hud-score').textContent=String(score).padStart(3,'0');
+  document.getElementById('timer-val').textContent=String(timeLeft).padStart(2,'0');
+}
+updateHUD();
+
+holes.forEach(h=>{
+  h.addEventListener('click',()=>whack(h));
+  h.addEventListener('touchstart',e=>{e.preventDefault();whack(h);},{passive:false});
+});
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.addEventListener('keydown',e=>{
+  if(_ac)_ac.resume();
+  if(st===ST.NAME){
+    if(e.code==='ArrowUp'){e.preventDefault();nePr();return;}
+    if(e.code==='ArrowDown'){e.preventDefault();neNx();return;}
+    if(e.code==='ArrowLeft'){e.preventDefault();neBk();return;}
+    if(e.code==='ArrowRight'||e.code==='Enter'||e.code==='Space'){e.preventDefault();neOk();return;}
+  }
+  if(st===ST.IDLE&&(e.code==='Space'||e.code==='Enter'))startGame();
+});
+})();
+</script>
+</body>
+</html>

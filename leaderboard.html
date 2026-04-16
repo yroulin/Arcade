@@ -149,8 +149,11 @@
       font-family: 'Silkscreen', cursive; font-size: 13px;
       letter-spacing: 2px;
     }
-    .score.cyan  { color: #70f0f3; }
-    .score.green { color: #4dff91; }
+    .score.cyan   { color: #70f0f3; }
+    .score.green  { color: #4dff91; }
+    .score.purple { color: #d77eff; }
+    .score.yellow { color: #ffd84d; }
+    .score.violet { color: #b8a0fb; }
 
     /* Date cell */
     .date { font-size: 11px; color: #676fbd; text-align: right; }
@@ -203,25 +206,48 @@
   <div class="games-grid">
 
     <!-- Pixel Pilot -->
-    <section class="game-section" id="pp-section">
+    <section class="game-section">
       <div class="game-header">
-        <svg class="game-dot" viewBox="0 0 10 10" fill="none">
-          <rect width="10" height="10" fill="#70f0f3" style="filter:drop-shadow(0 0 4px #70f0f3)"/>
-        </svg>
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#70f0f3" style="filter:drop-shadow(0 0 4px #70f0f3)"/></svg>
         <span class="game-title cyan">Pixel Pilot</span>
       </div>
       <div id="pp-board"></div>
     </section>
 
     <!-- Dino Math -->
-    <section class="game-section" id="dh-section">
+    <section class="game-section">
       <div class="game-header">
-        <svg class="game-dot" viewBox="0 0 10 10" fill="none">
-          <rect width="10" height="10" fill="#4dff91" style="filter:drop-shadow(0 0 4px #4dff91)"/>
-        </svg>
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#4dff91" style="filter:drop-shadow(0 0 4px #4dff91)"/></svg>
         <span class="game-title green">Dino Math</span>
       </div>
       <div id="dh-board"></div>
+    </section>
+
+    <!-- Simon -->
+    <section class="game-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#d77eff" style="filter:drop-shadow(0 0 4px #d77eff)"/></svg>
+        <span class="game-title" style="color:#d77eff;text-shadow:0 0 8px #d77eff">Simon</span>
+      </div>
+      <div id="simon-board"></div>
+    </section>
+
+    <!-- Whack-a-Mole -->
+    <section class="game-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#ffd84d" style="filter:drop-shadow(0 0 4px #ffd84d)"/></svg>
+        <span class="game-title" style="color:#ffd84d;text-shadow:0 0 8px #ffd84d">Whack-a-Mole</span>
+      </div>
+      <div id="wam-board"></div>
+    </section>
+
+    <!-- Memory Match -->
+    <section class="game-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#b8a0fb" style="filter:drop-shadow(0 0 4px #b8a0fb)"/></svg>
+        <span class="game-title" style="color:#b8a0fb;text-shadow:0 0 8px #b8a0fb">Memory Match</span>
+      </div>
+      <div id="mem-board"></div>
     </section>
 
   </div>
@@ -231,13 +257,33 @@
 <div class="bg-glow-2" aria-hidden="true"></div>
 
 <script>
+const SB_URL = 'https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-function renderBoard(containerId, gameKey, accentClass) {
-  const container = document.getElementById(containerId);
-  const entries   = JSON.parse(localStorage.getItem(gameKey + '_leaderboard') || '[]');
+async function fetchScores(game) {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/scores?game=eq.${game}&order=score.desc&limit=10&select=player_name,score,created_at`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+    );
+    if (!res.ok) return [];
+    return res.json();
+  } catch(_) { return []; }
+}
 
-  if (entries.length === 0) {
+function renderLoading(containerId) {
+  document.getElementById(containerId).innerHTML = `
+    <div class="empty"><div class="icon" style="font-size:14px;color:#39408c">···</div><p>Loading</p></div>`;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderBoard(containerId, accentClass, entries) {
+  const container = document.getElementById(containerId);
+  if (!entries || entries.length === 0) {
     container.innerHTML = `
       <div class="empty">
         <div class="icon">?</div>
@@ -246,41 +292,44 @@ function renderBoard(containerId, gameKey, accentClass) {
       </div>`;
     return;
   }
-
   const rows = entries.map((e, i) => {
     const rankLabel = i < 3
       ? `<span class="rank rank-${i+1}">${MEDALS[i]}</span>`
       : `<span class="rank rank-n">${String(i+1).padStart(2,'0')}</span>`;
+    const date = e.created_at ? esc(e.created_at.slice(0,10)) : '';
+    const score = parseInt(e.score, 10) || 0;
     return `
       <tr>
         <td>${rankLabel}</td>
-        <td><span class="name">${e.name}</span></td>
-        <td class="score ${accentClass}">${e.score.toString().padStart(6,'0')}</td>
-        <td class="date">${e.date || ''}</td>
+        <td><span class="name">${esc(e.player_name)}</span></td>
+        <td class="score ${accentClass}">${score.toString().padStart(score > 999 ? 6 : 3,'0')}</td>
+        <td class="date">${date}</td>
       </tr>`;
   }).join('');
-
   container.innerHTML = `
-    <table class="lb-table" aria-label="${gameKey} leaderboard">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Player</th>
-          <th style="text-align:right">Score</th>
-          <th style="text-align:right">Date</th>
-        </tr>
-      </thead>
+    <table class="lb-table">
+      <thead><tr><th>#</th><th>Player</th><th style="text-align:right">Score</th><th style="text-align:right">Date</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
 
-function renderAll() {
-  renderBoard('pp-board', 'pp', 'cyan');
-  renderBoard('dh-board', 'dh', 'green');
+const BOARDS = [
+  { id: 'pp-board',    game: 'pixel-pilot',  accent: 'cyan'   },
+  { id: 'dh-board',    game: 'dino-math',    accent: 'green'  },
+  { id: 'simon-board', game: 'simon',        accent: 'purple' },
+  { id: 'wam-board',   game: 'whack-a-mole', accent: 'yellow' },
+  { id: 'mem-board',   game: 'memory-match', accent: 'violet' },
+];
+
+async function renderAll() {
+  BOARDS.forEach(b => renderLoading(b.id));
+  await Promise.all(BOARDS.map(async b => {
+    const entries = await fetchScores(b.game);
+    renderBoard(b.id, b.accent, entries);
+  }));
 }
 
 renderAll();
-
 </script>
 
 </body>

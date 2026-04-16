@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>MEMORY MATCH – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:#000341; color:#e3e3ff; font-family:'Silkscreen',cursive;
+      min-height:100dvh; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      background-image:linear-gradient(to right,rgba(112,240,243,.04) 1px,transparent 1px),
+        linear-gradient(to bottom,rgba(112,240,243,.04) 1px,transparent 1px);
+      background-size:40px 40px; user-select:none;
+    }
+    #back-btn {
+      position:fixed; top:14px; left:14px;
+      background:rgba(0,3,65,.85); border:1px solid rgba(112,240,243,.3);
+      color:#70f0f3; font-family:'Silkscreen',cursive; font-size:9px;
+      padding:7px 12px; cursor:pointer; letter-spacing:2px; text-decoration:none;
+      z-index:50; transition:border-color .2s,box-shadow .2s;
+    }
+    #back-btn:hover { border-color:#70f0f3; box-shadow:0 0 10px rgba(112,240,243,.35); }
+    #hud {
+      display:flex; justify-content:space-between; align-items:flex-end;
+      width:340px; max-width:94vw; padding-bottom:10px;
+    }
+    .hl { color:#9da5f7; font-size:9px; letter-spacing:2px; }
+    .hv { color:#70f0f3; font-size:15px; letter-spacing:2px; text-shadow:0 0 10px #70f0f3; }
+    .hr { text-align:right; }
+
+    #grid {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+      width:340px; max-width:94vw;
+    }
+    .card {
+      aspect-ratio:1; cursor:pointer;
+      perspective:600px;
+    }
+    .card-inner {
+      width:100%; height:100%;
+      position:relative;
+      transform-style:preserve-3d;
+      transition:transform .4s ease;
+    }
+    .card.flipped .card-inner   { transform:rotateY(180deg); }
+    .card.matched .card-inner   { transform:rotateY(180deg); }
+    .card.matched .card-front   { box-shadow:0 0 16px rgba(77,255,145,.5); border-color:#4dff91; }
+    .card.wrong .card-inner     { animation:shake .3s ease; }
+    @keyframes shake { 0%,100%{transform:rotateY(180deg)} 25%{transform:rotateY(180deg) translateX(-4px)} 75%{transform:rotateY(180deg) translateX(4px)} }
+
+    .card-back, .card-front {
+      position:absolute; inset:0; backface-visibility:hidden;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .card-back {
+      background:#000662; border:2px solid #39408c;
+      font-size:clamp(18px,5vw,22px);
+    }
+    .card-back::after { content:'?'; color:#39408c; font-size:clamp(16px,4.5vw,22px); }
+    .card-front {
+      background:#000e96; border:2px solid #676fbd;
+      transform:rotateY(180deg);
+      font-size:clamp(22px,6.5vw,32px);
+    }
+
+    #status-bar {
+      width:340px; max-width:94vw; text-align:center;
+      padding:10px 8px 0; font-size:9px; letter-spacing:2px;
+      color:#9da5f7; min-height:34px;
+    }
+    #start-btn {
+      margin-top:12px; padding:12px 42px; background:#b8a0fb; color:#1a004a;
+      font-family:'Silkscreen',cursive; font-size:11px; letter-spacing:3px;
+      border:none; cursor:pointer; box-shadow:0 4px 0 #4e378a;
+      transition:box-shadow .1s,transform .1s;
+    }
+    #start-btn:active { transform:translateY(4px); box-shadow:0 0 0 #4e378a; }
+    #start-btn:hover  { box-shadow:0 4px 24px rgba(184,160,251,.6),0 4px 0 #4e378a; }
+
+    /* name entry */
+    #neo { display:none; position:fixed; inset:0; background:rgba(0,3,65,.94);
+      z-index:100; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+    #neo.show { display:flex; }
+    .nt { font-size:14px; color:#70f0f3; text-shadow:0 0 12px #70f0f3; }
+    .ns { font-size:10px; color:#d77eff; letter-spacing:2px; }
+    .nr { display:flex; gap:14px; }
+    .nc {
+      width:56px; height:68px; border:2px solid #39408c;
+      display:flex; align-items:center; justify-content:center;
+      font-size:32px; color:#676fbd; position:relative;
+    }
+    .nc.cur  { border-color:#70f0f3; color:#70f0f3; box-shadow:0 0 16px rgba(112,240,243,.4); }
+    .nc.done { border-color:#d77eff; color:#d77eff; }
+    .nc.cur::before { content:'▲'; position:absolute; top:-22px; font-size:10px; color:#70f0f3; }
+    .nc.cur::after  { content:'▼'; position:absolute; bottom:-22px; font-size:10px; color:#70f0f3; }
+    .nh { font-size:8px; color:#676fbd; letter-spacing:1px; text-align:center; line-height:2; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+<a href="index.html" id="back-btn">← BACK</a>
+<div id="hud">
+  <div><div class="hl">PAIRS</div><div class="hv" id="hud-pairs">0/8</div></div>
+  <div style="text-align:center"><div class="hl" style="color:#b8a0fb;font-size:11px;letter-spacing:3px">MEMORY</div><div class="hl" style="margin-top:2px">MATCH</div></div>
+  <div class="hr"><div class="hl">ERRORS</div><div class="hv" id="hud-err" style="color:#ff6e84;text-shadow:0 0 10px #ff6e84">00</div></div>
+</div>
+<div id="grid"></div>
+<div id="status-bar">PRESS START</div>
+<button id="start-btn">START GAME</button>
+
+<div id="neo">
+  <div class="nt">★ TOP 10 ★</div>
+  <div class="ns">ENTER YOUR INITIALS</div>
+  <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
+  <div class="nr">
+    <div class="nc cur" id="nc0">A</div>
+    <div class="nc"     id="nc1">A</div>
+    <div class="nc"     id="nc2">A</div>
+  </div>
+  <div class="nh">↑/↓ CHANGE &nbsp;|&nbsp; SPACE/ENTER CONFIRM &nbsp;|&nbsp; ← BACK</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const EMOJIS=['🦁','🐸','🦋','🐙','🦄','🐲','🌈','⭐'];
+const ST={IDLE:0,PLAY:1,OVER:2,NAME:3};
+let st=ST.IDLE, pairs=0, errors=0, flipped=[], locked=false, startTs=0;
+let hiScore=parseInt(localStorage.getItem('mem_hi')||'0');
+
+const SB_URL='https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+function lbTop(s){return s>0;}
+function lbAdd(name,s){
+  fetch(SB_URL+'/rest/v1/scores',{
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({player_name:name.toUpperCase(),game:'memory-match',score:s})
+  }).catch(()=>{});
+}
+
+let _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+function beep(f,d=.12,v=.2,tp='triangle'){
+  try{const a=ac(),o=a.createOscillator(),g=a.createGain();
+  o.connect(g);g.connect(a.destination);o.type=tp;o.frequency.value=f;
+  g.gain.setValueAtTime(v,a.currentTime);g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);
+  o.start();o.stop(a.currentTime+d);}catch(_){}
+}
+function sfxFlip(){ beep(660,.1,.15); }
+function sfxMatch(){ [784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.18,.2),i*80)); }
+function sfxWrong(){ beep(200,.22,.22,'sawtooth'); }
+function sfxWin(){ [523,659,784,1047,1319].forEach((f,i)=>setTimeout(()=>beep(f,.16,.22),i*90)); }
+
+let nc=['A','A','A'],ni=0;
+function neShow(){
+  nc=['A','A','A'];ni=0;neRender();
+  const s=calcScore();
+  document.getElementById('ne-sc').textContent='SCORE: '+String(s).padStart(4,'0');
+  document.getElementById('neo').classList.add('show');st=ST.NAME;
+}
+function neRender(){
+  for(let i=0;i<3;i++){
+    const el=document.getElementById('nc'+i);
+    el.textContent=nc[i];
+    el.className='nc'+(i===ni?' cur':i<ni?' done':'');
+  }
+}
+function nePr(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===65?90:c-1);neRender();beep(660,.06,.1);}
+function neNx(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===90?65:c+1);neRender();beep(880,.06,.1);}
+function neOk(){
+  if(ni<2){ni++;neRender();beep(660,.08,.14);}
+  else{lbAdd(nc.join(''),calcScore());document.getElementById('neo').classList.remove('show');showOver();}
+}
+function neBk(){if(ni>0){ni--;neRender();beep(440,.08,.1);}}
+
+function calcScore(){ return Math.max(100, 2000 - errors*100 - Math.floor((Date.now()-startTs)/1000)*8); }
+
+function buildGrid(){
+  const emojis=[...EMOJIS,...EMOJIS];
+  for(let i=emojis.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[emojis[i],emojis[j]]=[emojis[j],emojis[i]];}
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  emojis.forEach((em,idx)=>{
+    const card=document.createElement('div');
+    card.className='card';card.dataset.em=em;card.dataset.idx=idx;
+    card.innerHTML=`<div class="card-inner"><div class="card-back"></div><div class="card-front">${em}</div></div>`;
+    card.addEventListener('click',()=>flipCard(card));
+    card.addEventListener('touchstart',e=>{e.preventDefault();flipCard(card);},{passive:false});
+    grid.appendChild(card);
+  });
+}
+
+function startGame(){
+  if(_ac)_ac.resume();
+  pairs=0;errors=0;flipped=[];locked=false;st=ST.PLAY;
+  startTs=Date.now();
+  buildGrid();updateHUD();
+  document.getElementById('start-btn').style.display='none';
+  setStatus('FIND THE MATCHING PAIRS!');
+}
+
+function flipCard(card){
+  if(st!==ST.PLAY||locked)return;
+  if(card.classList.contains('flipped')||card.classList.contains('matched'))return;
+  if(_ac)_ac.resume();
+  card.classList.add('flipped');
+  sfxFlip();
+  flipped.push(card);
+  if(flipped.length===2) checkMatch();
+}
+
+function checkMatch(){
+  locked=true;
+  const [a,b]=flipped;
+  if(a.dataset.em===b.dataset.em){
+    // Match!
+    setTimeout(()=>{
+      a.classList.add('matched');b.classList.add('matched');
+      sfxMatch();
+      flipped=[];locked=false;
+      pairs++;updateHUD();
+      if(pairs===8){
+        st=ST.OVER;sfxWin();
+        const s=calcScore();
+        if(s>hiScore){hiScore=s;localStorage.setItem('mem_hi',hiScore);}
+        setTimeout(()=>{if(lbTop(s))neShow();else showOver();},1000);
+      }
+    },350);
+  } else {
+    errors++;updateHUD();sfxWrong();
+    a.classList.add('wrong');b.classList.add('wrong');
+    setTimeout(()=>{
+      a.classList.remove('flipped','wrong');
+      b.classList.remove('flipped','wrong');
+      flipped=[];locked=false;
+    },900);
+  }
+}
+
+function showOver(){
+  st=ST.IDLE;
+  const s=calcScore();
+  setStatus('WELL DONE! SCORE: '+String(s).padStart(4,'0'));
+  const btn=document.getElementById('start-btn');btn.textContent='PLAY AGAIN';btn.style.display='';
+}
+function setStatus(t){document.getElementById('status-bar').textContent=t;}
+function updateHUD(){
+  document.getElementById('hud-pairs').textContent=pairs+'/8';
+  document.getElementById('hud-err').textContent=String(errors).padStart(2,'0');
+}
+updateHUD();
+
+document.getElementById('start-btn').addEventListener('click',startGame);
+document.addEventListener('keydown',e=>{
+  if(_ac)_ac.resume();
+  if(st===ST.NAME){
+    if(e.code==='ArrowUp'){e.preventDefault();nePr();return;}
+    if(e.code==='ArrowDown'){e.preventDefault();neNx();return;}
+    if(e.code==='ArrowLeft'){e.preventDefault();neBk();return;}
+    if(e.code==='ArrowRight'||e.code==='Enter'||e.code==='Space'){e.preventDefault();neOk();return;}
+  }
+  if(st===ST.IDLE&&(e.code==='Space'||e.code==='Enter'))startGame();
+});
+})();
+</script>
+</body>
+</html>
