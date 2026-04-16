@@ -1,16 +1,23 @@
 <!DOCTYPE html>
 <html class="dark" lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nico's Arcade Room - Level Up</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Be+Vietnam+Pro:wght@300;400;500;700&family=Silkscreen&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Be+Vietnam+Pro:wght@300;400;500;700&family=Silkscreen&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+    rel="stylesheet" />
 
   <style>
     /* ─── Fonts ─── */
-    .pixel-font { font-family: 'Silkscreen', cursive; }
+    .pixel-font {
+      font-family: 'Silkscreen', cursive;
+    }
+
     .material-symbols-outlined {
       font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       font-family: 'Material Symbols Outlined';
@@ -29,44 +36,71 @@
     }
 
     /* ─── Scrollbar ─── */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: #000341; }
-    ::-webkit-scrollbar-thumb { background: #70f0f3; box-shadow: 0 0 10px #70f0f3; }
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #000341;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #70f0f3;
+      box-shadow: 0 0 10px #70f0f3;
+    }
 
     /* ─── Pixel grid background ─── */
     .arcade-grid-bg {
       background-image:
-        linear-gradient(to right, rgba(112,240,243,0.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(112,240,243,0.05) 1px, transparent 1px);
+        linear-gradient(to right, rgba(112, 240, 243, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(112, 240, 243, 0.05) 1px, transparent 1px);
       background-size: 40px 40px;
     }
 
     /* ─── Neon glow utilities ─── */
-    .glow-cyan { text-shadow: 0 0 10px #70f0f3, 0 0 20px #70f0f3; }
-    .glow-purple { text-shadow: 0 0 10px #d77eff, 0 0 20px #d77eff; }
-    .glow-red { text-shadow: 0 0 10px #ff6e84, 0 0 20px #ff6e84; }
-    .box-glow-cyan { box-shadow: 0 0 15px rgba(112,240,243,0.5); }
-    .box-glow-purple { box-shadow: 0 0 15px rgba(215,126,255,0.4); }
-    .box-glow-red { box-shadow: 0 0 15px rgba(255,110,132,0.4); }
+    .glow-cyan {
+      text-shadow: 0 0 10px #70f0f3, 0 0 20px #70f0f3;
+    }
+
+    .glow-purple {
+      text-shadow: 0 0 10px #d77eff, 0 0 20px #d77eff;
+    }
+
+    .glow-red {
+      text-shadow: 0 0 10px #ff6e84, 0 0 20px #ff6e84;
+    }
+
+    .box-glow-cyan {
+      box-shadow: 0 0 15px rgba(112, 240, 243, 0.5);
+    }
+
+    .box-glow-purple {
+      box-shadow: 0 0 15px rgba(215, 126, 255, 0.4);
+    }
+
+    .box-glow-red {
+      box-shadow: 0 0 15px rgba(255, 110, 132, 0.4);
+    }
 
     /* ─── CRT scanlines overlay ─── */
     .crt-overlay::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.05) 2px,
-        rgba(0,0,0,0.05) 4px
-      );
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.05) 2px,
+          rgba(0, 0, 0, 0.05) 4px);
       pointer-events: none;
       z-index: 5;
     }
 
     /* ─── Neon border left ─── */
-    .border-neon-left { border-left: 4px solid #70f0f3; box-shadow: -4px 0 15px rgba(112,240,243,0.4); }
+    .border-neon-left {
+      border-left: 4px solid #70f0f3;
+      box-shadow: -4px 0 15px rgba(112, 240, 243, 0.4);
+    }
 
     /* ─── Hero gradient text ─── */
     .hero-title {
@@ -86,7 +120,10 @@
 
     /* ─── Reduced motion ─── */
     @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
+
+      *,
+      *::before,
+      *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
       }
@@ -94,54 +131,89 @@
 
     /* ─── Sidebar nav hover ─── */
     .nav-item {
-      display: flex; align-items: center; gap: 1rem;
-      padding: 0.75rem; color: #e3e3ff;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem;
+      color: #e3e3ff;
       transition: all 0.2s ease;
       cursor: pointer;
     }
+
     .nav-item:hover {
       background: #000873;
       color: #70f0f3;
       transform: translateX(8px);
     }
+
     .nav-item.active {
       background: #70f0f3;
       color: #000341;
       font-weight: 700;
     }
-    .nav-item.active:hover { transform: none; }
+
+    .nav-item.active:hover {
+      transform: none;
+    }
 
     /* ─── Card hover lift ─── */
     .card-lift {
       transition: transform 0.3s ease, border-color 0.3s ease;
-      border: 1px solid rgba(57,64,140,0.2);
+      border: 1px solid rgba(57, 64, 140, 0.2);
     }
+
     .card-lift:hover {
       transform: translateY(-8px);
-      border-color: rgba(112,240,243,0.5);
+      border-color: rgba(112, 240, 243, 0.5);
     }
 
     /* ─── Game image zoom ─── */
-    .img-zoom { transition: transform 0.5s ease; }
-    .group:hover .img-zoom { transform: scale(1.1); }
+    .img-zoom {
+      transition: transform 0.5s ease;
+    }
+
+    .group:hover .img-zoom {
+      transform: scale(1.1);
+    }
 
     /* ─── Grayscale toggle ─── */
-    .img-gray { filter: grayscale(100%); transition: filter 0.3s ease; }
-    .group:hover .img-gray { filter: grayscale(0%); }
+    .img-gray {
+      filter: grayscale(100%);
+      transition: filter 0.3s ease;
+    }
+
+    .group:hover .img-gray {
+      filter: grayscale(0%);
+    }
 
     /* ─── Zombie card: grayscale to color ─── */
-    .zombie-img { filter: grayscale(100%); transition: filter 0.5s ease, transform 0.5s ease; }
-    .group:hover .zombie-img { filter: grayscale(0%); transform: scale(1.05); }
+    .zombie-img {
+      filter: grayscale(100%);
+      transition: filter 0.5s ease, transform 0.5s ease;
+    }
+
+    .group:hover .zombie-img {
+      filter: grayscale(0%);
+      transform: scale(1.05);
+    }
 
     /* ─── Button base ─── */
-    .btn { cursor: pointer; transition: all 0.2s ease; user-select: none; }
-    .btn:active { transform: scale(0.95); }
+    .btn {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
 
     /* ─── INSERT COIN button ─── */
     .coin-btn {
       border-bottom: 4px solid #5f0085;
       transition: all 0.15s ease;
     }
+
     .coin-btn:active {
       transform: translateY(4px);
       border-bottom-width: 0;
@@ -150,15 +222,25 @@
     /* ─── Mobile bottom nav active ─── */
     .bottom-nav-active {
       color: #70f0f3;
-      filter: drop-shadow(0 0 8px rgba(112,240,243,0.8));
+      filter: drop-shadow(0 0 8px rgba(112, 240, 243, 0.8));
     }
 
     /* ─── Pulse animation for active bottom nav ─── */
     @keyframes subtlePulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
     }
-    .animate-pulse-slow { animation: subtlePulse 2s ease-in-out infinite; }
+
+    .animate-pulse-slow {
+      animation: subtlePulse 2s ease-in-out infinite;
+    }
   </style>
 
   <script>
@@ -167,57 +249,57 @@
       theme: {
         extend: {
           colors: {
-            'primary':                '#70f0f3',
-            'primary-dim':            '#60e1e4',
-            'primary-fixed':          '#70f0f3',
-            'primary-fixed-dim':      '#60e1e4',
-            'on-primary':             '#005859',
-            'on-primary-container':   '#002829',
-            'on-primary-fixed':       '#004345',
-            'on-primary-fixed-variant':'#006264',
-            'primary-container':      '#19b2b5',
-            'inverse-primary':        '#006a6c',
-            'secondary':              '#b8a0fb',
-            'secondary-dim':          '#aa92ec',
-            'secondary-fixed':        '#d9caff',
-            'secondary-fixed-dim':    '#ccb9ff',
-            'on-secondary':           '#351c70',
+            'primary': '#70f0f3',
+            'primary-dim': '#60e1e4',
+            'primary-fixed': '#70f0f3',
+            'primary-fixed-dim': '#60e1e4',
+            'on-primary': '#005859',
+            'on-primary-container': '#002829',
+            'on-primary-fixed': '#004345',
+            'on-primary-fixed-variant': '#006264',
+            'primary-container': '#19b2b5',
+            'inverse-primary': '#006a6c',
+            'secondary': '#b8a0fb',
+            'secondary-dim': '#aa92ec',
+            'secondary-fixed': '#d9caff',
+            'secondary-fixed-dim': '#ccb9ff',
+            'on-secondary': '#351c70',
             'on-secondary-container': '#d8c8ff',
-            'on-secondary-fixed':     '#3b2376',
-            'on-secondary-fixed-variant':'#584295',
-            'secondary-container':    '#4e378a',
-            'tertiary':               '#d77eff',
-            'tertiary-dim':           '#d475ff',
-            'tertiary-fixed':         '#df93ff',
-            'tertiary-fixed-dim':     '#d77eff',
-            'on-tertiary':            '#40005c',
-            'on-tertiary-container':  '#2b003e',
-            'on-tertiary-fixed':      '#2c0040',
-            'on-tertiary-fixed-variant':'#5f0085',
-            'tertiary-container':     '#cd6bfa',
-            'background':             '#000341',
-            'on-background':          '#e3e3ff',
-            'surface':                '#000341',
-            'surface-dim':            '#000341',
-            'surface-bright':         '#000e96',
-            'surface-tint':           '#70f0f3',
-            'surface-variant':        '#000b84',
-            'surface-container-lowest':'#000000',
-            'surface-container-low':  '#000450',
-            'surface-container':      '#000662',
+            'on-secondary-fixed': '#3b2376',
+            'on-secondary-fixed-variant': '#584295',
+            'secondary-container': '#4e378a',
+            'tertiary': '#d77eff',
+            'tertiary-dim': '#d475ff',
+            'tertiary-fixed': '#df93ff',
+            'tertiary-fixed-dim': '#d77eff',
+            'on-tertiary': '#40005c',
+            'on-tertiary-container': '#2b003e',
+            'on-tertiary-fixed': '#2c0040',
+            'on-tertiary-fixed-variant': '#5f0085',
+            'tertiary-container': '#cd6bfa',
+            'background': '#000341',
+            'on-background': '#e3e3ff',
+            'surface': '#000341',
+            'surface-dim': '#000341',
+            'surface-bright': '#000e96',
+            'surface-tint': '#70f0f3',
+            'surface-variant': '#000b84',
+            'surface-container-lowest': '#000000',
+            'surface-container-low': '#000450',
+            'surface-container': '#000662',
             'surface-container-high': '#000873',
-            'surface-container-highest':'#000b84',
-            'on-surface':             '#e3e3ff',
-            'on-surface-variant':     '#9da5f7',
-            'inverse-surface':        '#fbf8ff',
-            'inverse-on-surface':     '#464e9a',
-            'outline':                '#676fbd',
-            'outline-variant':        '#39408c',
-            'error':                  '#ff6e84',
-            'error-dim':              '#d73357',
-            'error-container':        '#a70138',
-            'on-error':               '#490013',
-            'on-error-container':     '#ffb2b9',
+            'surface-container-highest': '#000b84',
+            'on-surface': '#e3e3ff',
+            'on-surface-variant': '#9da5f7',
+            'inverse-surface': '#fbf8ff',
+            'inverse-on-surface': '#464e9a',
+            'outline': '#676fbd',
+            'outline-variant': '#39408c',
+            'error': '#ff6e84',
+            'error-dim': '#d73357',
+            'error-container': '#a70138',
+            'on-error': '#490013',
+            'on-error-container': '#ffb2b9',
           },
           borderRadius: {
             DEFAULT: '0px',
@@ -237,21 +319,25 @@
   </script>
 </head>
 
-<body class="bg-background text-on-surface font-body selection:bg-primary selection:text-surface-dim overflow-x-hidden arcade-grid-bg min-h-screen">
+<body
+  class="bg-background text-on-surface font-body selection:bg-primary selection:text-surface-dim overflow-x-hidden arcade-grid-bg min-h-screen">
 
   <!-- ═══════════════════════════════════════════
        TOP NAVBAR
   ═══════════════════════════════════════════ -->
-  <header class="fixed top-0 w-full z-50 bg-surface-dim/60 backdrop-blur-xl flex justify-between items-center px-6 h-20 border-b border-primary/20 shadow-[0_0_15px_rgba(112,240,243,0.3)]">
+  <header
+    class="fixed top-0 w-full z-50 bg-surface-dim/60 backdrop-blur-xl flex justify-between items-center px-6 h-20 border-b border-primary/20 shadow-[0_0_15px_rgba(112,240,243,0.3)]">
 
     <!-- Logo -->
-    <div class="text-2xl sm:text-3xl font-black italic logo-gradient font-headline tracking-tighter uppercase select-none">
+    <div
+      class="text-2xl sm:text-3xl font-black italic logo-gradient font-headline tracking-tighter uppercase select-none">
       Nico's Arcade Room
     </div>
 
     <!-- Desktop nav links -->
     <nav class="hidden md:flex items-center gap-8 font-headline tracking-tighter uppercase text-sm">
-      <a href="#featured" class="text-primary border-b-2 border-primary pb-0.5 transition-colors cursor-pointer">Featured</a>
+      <a href="#featured"
+        class="text-primary border-b-2 border-primary pb-0.5 transition-colors cursor-pointer">Featured</a>
     </nav>
 
     <!-- Right controls -->
@@ -261,16 +347,15 @@
         <span class="material-symbols-outlined text-primary" style="font-size:18px">search</span>
         <input
           class="bg-transparent border-none outline-none focus:ring-0 text-xs font-headline tracking-widest placeholder:text-on-surface-variant/50 text-on-surface w-32"
-          placeholder="SEARCH GAMES..."
-          type="text"
-          aria-label="Search games"
-        />
+          placeholder="SEARCH GAMES..." type="text" aria-label="Search games" />
       </div>
       <!-- Icons -->
-      <button class="text-on-surface-variant hover:text-primary transition-all active:scale-95 btn p-1" aria-label="Settings">
+      <button class="text-on-surface-variant hover:text-primary transition-all active:scale-95 btn p-1"
+        aria-label="Settings">
         <span class="material-symbols-outlined">settings</span>
       </button>
-      <button class="text-on-surface-variant hover:text-primary transition-all active:scale-95 btn p-1" aria-label="Account">
+      <button class="text-on-surface-variant hover:text-primary transition-all active:scale-95 btn p-1"
+        aria-label="Account">
         <span class="material-symbols-outlined">account_circle</span>
       </button>
     </div>
@@ -280,18 +365,16 @@
   <!-- ═══════════════════════════════════════════
        SIDEBAR (desktop only)
   ═══════════════════════════════════════════ -->
-  <aside class="hidden lg:flex fixed left-0 top-0 h-screen w-64 z-40 bg-surface-dim border-r border-primary/20 flex-col pt-28 pb-6 shadow-[10px_0_30px_rgba(0,0,0,0.5)] font-headline" aria-label="Sidebar navigation">
+  <aside
+    class="hidden lg:flex fixed left-0 top-0 h-screen w-64 z-40 bg-surface-dim border-r border-primary/20 flex-col pt-28 pb-6 shadow-[10px_0_30px_rgba(0,0,0,0.5)] font-headline"
+    aria-label="Sidebar navigation">
 
     <!-- Player profile -->
     <div class="px-6 mb-8">
       <div class="flex items-center gap-3">
         <div class="w-12 h-12 bg-primary-container border-2 border-primary overflow-hidden flex-shrink-0">
-          <img
-            src="https://picsum.photos/seed/player99/48/48"
-            alt="Player profile avatar"
-            class="w-full h-full object-cover"
-            width="48" height="48"
-          />
+          <img src="https://picsum.photos/seed/player99/48/48" alt="Player profile avatar"
+            class="w-full h-full object-cover" width="48" height="48" />
         </div>
         <div>
           <p class="text-primary font-bold text-sm tracking-widest">PLAYER ONE</p>
@@ -326,7 +409,8 @@
 
     <!-- INSERT COIN -->
     <div class="px-4 mt-auto">
-      <button class="w-full py-4 pixel-font bg-tertiary-container text-on-tertiary text-xs hover:bg-tertiary transition-colors coin-btn box-glow-purple btn">
+      <button
+        class="w-full py-4 pixel-font bg-tertiary-container text-on-tertiary text-xs hover:bg-tertiary transition-colors coin-btn box-glow-purple btn">
         INSERT COIN
       </button>
     </div>
@@ -342,29 +426,27 @@
     <section class="relative mb-20 overflow-hidden border-neon-left crt-overlay" aria-label="Hero">
       <!-- Background image -->
       <div class="h-[400px] relative">
-        <img
-          src="https://picsum.photos/seed/neonarcade/1200/400"
-          alt="Retro futuristic neon city"
-          class="w-full h-full object-cover grayscale opacity-40"
-          width="1200" height="400"
-          loading="eager"
-        />
+        <img src="https://picsum.photos/seed/neonarcade/1200/400" alt="Retro futuristic neon city"
+          class="w-full h-full object-cover grayscale opacity-40" width="1200" height="400" loading="eager" />
         <!-- Gradient overlay -->
         <div class="absolute inset-0 bg-gradient-to-r from-surface-dim via-surface-dim/70 to-transparent z-10"></div>
 
         <!-- Hero text -->
         <div class="absolute bottom-10 left-10 z-20 max-w-2xl">
-          <h1 class="text-6xl sm:text-7xl font-black font-headline tracking-tighter uppercase italic leading-none mb-4 hero-title">
+          <h1
+            class="text-6xl sm:text-7xl font-black font-headline tracking-tighter uppercase italic leading-none mb-4 hero-title">
             ARCADE
           </h1>
           <p class="text-on-surface-variant text-base sm:text-lg font-medium mb-8 max-w-md leading-relaxed">
             Enter the digital realm. High scores, neon lights, and infinite play await. Ready player one?
           </p>
           <div class="flex flex-wrap gap-4">
-            <button class="px-8 py-3 bg-primary text-on-primary-container font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_#70f0f3] transition-all btn">
+            <button
+              class="px-8 py-3 bg-primary text-on-primary-container font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_#70f0f3] transition-all btn">
               START ENGINE
             </button>
-            <button onclick="window.location.href='leaderboard.html'" class="px-8 py-3 bg-secondary-container text-on-secondary-container font-headline font-black tracking-widest uppercase text-sm hover:bg-secondary transition-all btn">
+            <button onclick="window.location.href='leaderboard.html'"
+              class="px-8 py-3 bg-secondary-container text-on-secondary-container font-headline font-black tracking-widest uppercase text-sm hover:bg-secondary transition-all btn">
               VIEW RANKS
             </button>
           </div>
@@ -376,7 +458,8 @@
     <!-- ─── FEATURED SECTION ─── -->
     <section id="featured" class="mb-16" aria-labelledby="featured-heading">
       <div class="flex items-baseline gap-4 mb-8">
-        <h2 id="featured-heading" class="pixel-font text-xl sm:text-2xl text-primary tracking-widest uppercase glow-cyan">Featured</h2>
+        <h2 id="featured-heading"
+          class="pixel-font text-xl sm:text-2xl text-primary tracking-widest uppercase glow-cyan">Featured</h2>
         <div class="h-px flex-grow bg-gradient-to-r from-primary/40 to-transparent"></div>
       </div>
 
@@ -385,19 +468,18 @@
         <!-- Card: Pixel Pilot -->
         <article class="group relative bg-surface-container-low card-lift" aria-label="Pixel Pilot">
           <div class="aspect-video relative overflow-hidden">
-            <img
-              src="images/pixel-pilot.png"
-              alt="Pixel Pilot – retro galactic space shooter"
-              class="w-full h-full object-cover img-zoom"
-              width="600" height="338"
-              loading="lazy"
-            />
-            <div class="absolute inset-0 bg-secondary/10 group-hover:bg-transparent transition-colors duration-300"></div>
+            <img src="images/pixel-pilot.png" alt="Pixel Pilot – retro galactic space shooter"
+              class="w-full h-full object-contain img-zoom" width="600" height="338" loading="lazy" />
+            <div class="absolute inset-0 bg-secondary/10 group-hover:bg-transparent transition-colors duration-300">
+            </div>
           </div>
           <div class="p-6">
-            <h3 class="text-xl sm:text-2xl font-headline font-black text-primary mb-2 uppercase tracking-tighter">Pixel Pilot</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Retro galactic dogfights across eight dangerous pixelated sectors.</p>
-            <button data-game="pixel-pilot.html" class="w-full py-3 bg-primary text-on-primary-container font-headline font-bold uppercase tracking-widest text-xs hover:shadow-[0_0_15px_#70f0f3] transition-all btn">
+            <h3 class="text-xl sm:text-2xl font-headline font-black text-primary mb-2 uppercase tracking-tighter">Pixel
+              Pilot</h3>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Retro galactic dogfights across eight dangerous
+              pixelated sectors.</p>
+            <button data-game="pixel-pilot.html"
+              class="w-full py-3 bg-primary text-on-primary-container font-headline font-bold uppercase tracking-widest text-xs hover:shadow-[0_0_15px_#70f0f3] transition-all btn">
               PLAY
             </button>
           </div>
@@ -406,22 +488,24 @@
         <!-- Card: Dino Math -->
         <article class="group relative bg-surface-container-low card-lift" aria-label="Dino Math">
           <div class="aspect-video relative overflow-hidden">
-            <img
-              src="images/dino-math.png"
-              alt="Dinosaur Hole Game Life – math puzzle platformer"
-              class="w-full h-full object-cover img-zoom"
-              width="600" height="338"
-              loading="lazy"
-            />
+            <img src="images/dino-math.png" alt="Dinosaur Hole Game Life – math puzzle platformer"
+              class="w-full h-full object-contain img-zoom" width="600" height="338" loading="lazy" />
             <div class="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors duration-300"></div>
-            <div class="absolute bottom-0 left-0 bg-[#4dff91] px-3 py-1 font-headline font-black text-xs text-black z-10">
+            <div
+              class="absolute bottom-0 left-0 bg-[#4dff91] px-3 py-1 font-headline font-black text-xs text-black z-10">
               EDUCATION
             </div>
           </div>
           <div class="p-6">
-            <h3 class="text-xl sm:text-2xl font-headline font-black text-[#4dff91] mb-2 uppercase tracking-tighter" style="text-shadow:0 0 8px #4dff91">Dino Math</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Solve math gates across 5 sectors. Jump holes. Teach your dino arithmetic!</p>
-            <button data-game="dino-math.html" class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn" style="background:#4dff91;color:#000;box-shadow:0 0 0 #4dff91" onmouseenter="this.style.boxShadow='0 0 15px #4dff91'" onmouseleave="this.style.boxShadow='0 0 0 #4dff91'">
+            <h3 class="text-xl sm:text-2xl font-headline font-black text-[#4dff91] mb-2 uppercase tracking-tighter"
+              style="text-shadow:0 0 8px #4dff91">Dino Math</h3>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Solve math gates across 5 sectors. Jump holes.
+              Teach your dino arithmetic!</p>
+            <button data-game="dino-math.html"
+              class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn"
+              style="background:#4dff91;color:#000;box-shadow:0 0 0 #4dff91"
+              onmouseenter="this.style.boxShadow='0 0 15px #4dff91'"
+              onmouseleave="this.style.boxShadow='0 0 0 #4dff91'">
               PLAY
             </button>
           </div>
@@ -438,21 +522,27 @@
   ═══════════════════════════════════════════ -->
   <nav
     class="lg:hidden fixed bottom-0 w-full z-50 bg-surface-dim/80 backdrop-blur-lg flex justify-around items-center h-16 px-4 border-t-2 border-primary/50 shadow-[0_-5px_20px_rgba(112,240,243,0.4)]"
-    aria-label="Mobile navigation"
-  >
-    <a href="#" class="flex flex-col items-center justify-center gap-0.5 bottom-nav-active animate-pulse-slow" aria-current="page" aria-label="Home">
+    aria-label="Mobile navigation">
+    <a href="#" class="flex flex-col items-center justify-center gap-0.5 bottom-nav-active animate-pulse-slow"
+      aria-current="page" aria-label="Home">
       <span class="material-symbols-outlined" style="font-size:22px">home</span>
       <span class="font-headline text-[9px] uppercase font-bold">Home</span>
     </a>
-    <a href="#featured" class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors" aria-label="Games">
+    <a href="#featured"
+      class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors"
+      aria-label="Games">
       <span class="material-symbols-outlined" style="font-size:22px">sports_esports</span>
       <span class="font-headline text-[9px] uppercase font-bold">Games</span>
     </a>
-    <a href="#" class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors" aria-label="Social">
+    <a href="#"
+      class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors"
+      aria-label="Social">
       <span class="material-symbols-outlined" style="font-size:22px">group</span>
       <span class="font-headline text-[9px] uppercase font-bold">Social</span>
     </a>
-    <a href="#" class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors" aria-label="Profile">
+    <a href="#"
+      class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors"
+      aria-label="Profile">
       <span class="material-symbols-outlined" style="font-size:22px">person</span>
       <span class="font-headline text-[9px] uppercase font-bold">Profile</span>
     </a>
@@ -462,9 +552,15 @@
   <!-- ═══════════════════════════════════════════
        BACKGROUND DECORATIONS
   ═══════════════════════════════════════════ -->
-  <div class="fixed bottom-0 right-0 w-96 h-72 bg-gradient-to-tl from-primary/10 to-transparent pointer-events-none -z-10 blur-3xl" aria-hidden="true"></div>
-  <div class="fixed top-0 left-0 w-96 h-96 bg-gradient-to-br from-tertiary/10 to-transparent pointer-events-none -z-10 blur-3xl" aria-hidden="true"></div>
-  <div class="fixed top-1/2 right-0 w-64 h-64 bg-gradient-to-l from-error/5 to-transparent pointer-events-none -z-10 blur-3xl" aria-hidden="true"></div>
+  <div
+    class="fixed bottom-0 right-0 w-96 h-72 bg-gradient-to-tl from-primary/10 to-transparent pointer-events-none -z-10 blur-3xl"
+    aria-hidden="true"></div>
+  <div
+    class="fixed top-0 left-0 w-96 h-96 bg-gradient-to-br from-tertiary/10 to-transparent pointer-events-none -z-10 blur-3xl"
+    aria-hidden="true"></div>
+  <div
+    class="fixed top-1/2 right-0 w-64 h-64 bg-gradient-to-l from-error/5 to-transparent pointer-events-none -z-10 blur-3xl"
+    aria-hidden="true"></div>
 
 
   <!-- ═══════════════════════════════════════════
@@ -473,7 +569,7 @@
   <script>
     // ── Active sidebar nav item ──────────────────
     document.querySelectorAll('aside nav a.nav-item').forEach(link => {
-      link.addEventListener('click', function(e) {
+      link.addEventListener('click', function (e) {
         document.querySelectorAll('aside nav a.nav-item').forEach(l => l.classList.remove('active'));
         this.classList.add('active');
       });
@@ -481,7 +577,7 @@
 
     // ── Active mobile nav item ───────────────────
     document.querySelectorAll('nav[aria-label="Mobile navigation"] a').forEach(link => {
-      link.addEventListener('click', function(e) {
+      link.addEventListener('click', function (e) {
         document.querySelectorAll('nav[aria-label="Mobile navigation"] a').forEach(l => {
           l.classList.remove('bottom-nav-active', 'animate-pulse-slow');
           l.removeAttribute('aria-current');
@@ -493,7 +589,7 @@
 
     // ── Smooth scroll for anchor links ──────────
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
+      anchor.addEventListener('click', function (e) {
         const target = document.querySelector(this.getAttribute('href'));
         if (target) {
           e.preventDefault();
@@ -505,7 +601,7 @@
     // ── Search input enter handler ───────────────
     const searchInput = document.querySelector('input[type="text"]');
     if (searchInput) {
-      searchInput.addEventListener('keydown', function(e) {
+      searchInput.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' && this.value.trim()) {
           alert('Searching for: ' + this.value.trim());
           this.value = '';
@@ -517,7 +613,7 @@
     document.querySelectorAll('button').forEach(btn => {
       const text = btn.textContent.trim();
       if (['PLAY', '>> LAUNCH', 'ENTER VOID', 'START ENGINE', 'VIEW RANKS', 'INSERT COIN'].some(t => text.includes(t))) {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
           // If button links to a real game, navigate after brief loading flash
           const gameSrc = this.dataset.game;
           const original = this.textContent;
@@ -537,4 +633,5 @@
   </script>
 
 </body>
+
 </html>
