@@ -188,18 +188,34 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01ms !important; }
     }
+
+    #lang-toggle {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px;
+      background: transparent; color: #70f0f3;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 6px 10px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: border-color 0.2s, box-shadow 0.2s; flex-shrink: 0;
+    }
+    #lang-toggle:hover { border-color: #70f0f3; box-shadow: 0 0 8px rgba(112,240,243,0.3); }
   </style>
+  <script src="i18n.js"></script>
 </head>
 <body>
 
 <header>
   <a href="index.html" class="logo">Nico's Arcade Room</a>
-  <a href="index.html" id="back-btn">← Back</a>
+  <button id="lang-toggle" onclick="toggleLang()" aria-label="Cambiar a Español">
+    <span class="lang-flag">🇺🇸</span>
+    <span class="lang-code">EN</span>
+  </button>
+  <a href="index.html" id="back-btn" data-i18n="back">← Back</a>
 </header>
 
 <main>
   <div class="page-title">
-    <h1>Leaderboard</h1>
+    <h1 data-i18n="lb.title">Leaderboard</h1>
     <div class="line"></div>
   </div>
 
@@ -261,6 +277,9 @@ const SB_URL = 'https://eqagokpvhmobxqnyixqu.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
 const MEDALS = ['🥇', '🥈', '🥉'];
 
+// Cache fetched entries per board so re-render on lang change is instant
+const cachedEntries = {};
+
 async function fetchScores(game) {
   try {
     const res = await fetch(
@@ -274,7 +293,7 @@ async function fetchScores(game) {
 
 function renderLoading(containerId) {
   document.getElementById(containerId).innerHTML = `
-    <div class="empty"><div class="icon" style="font-size:14px;color:#39408c">···</div><p>Loading</p></div>`;
+    <div class="empty"><div class="icon" style="font-size:14px;color:#39408c">···</div><p>${t('lb.loading') || 'Loading'}</p></div>`;
 }
 
 function esc(str) {
@@ -287,8 +306,8 @@ function renderBoard(containerId, accentClass, entries) {
     container.innerHTML = `
       <div class="empty">
         <div class="icon">?</div>
-        <p>No scores yet</p>
-        <p style="margin-top:8px;font-size:8px;color:#1a1f5a">Play the game to set a record</p>
+        <p>${t('lb.empty') || 'No scores yet'}</p>
+        <p style="margin-top:8px;font-size:8px;color:#1a1f5a">${t('lb.empty_sub') || 'Play the game to set a record'}</p>
       </div>`;
     return;
   }
@@ -308,7 +327,12 @@ function renderBoard(containerId, accentClass, entries) {
   }).join('');
   container.innerHTML = `
     <table class="lb-table">
-      <thead><tr><th>#</th><th>Player</th><th style="text-align:right">Score</th><th style="text-align:right">Date</th></tr></thead>
+      <thead><tr>
+        <th>${t('lb.col.rank')||'#'}</th>
+        <th>${t('lb.col.player')||'Player'}</th>
+        <th style="text-align:right">${t('lb.col.score')||'Score'}</th>
+        <th style="text-align:right">${t('lb.col.date')||'Date'}</th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
 }
@@ -325,9 +349,20 @@ async function renderAll() {
   BOARDS.forEach(b => renderLoading(b.id));
   await Promise.all(BOARDS.map(async b => {
     const entries = await fetchScores(b.game);
+    cachedEntries[b.id] = entries;
     renderBoard(b.id, b.accent, entries);
   }));
 }
+
+function rerenderAll() {
+  BOARDS.forEach(b => {
+    if (cachedEntries[b.id] !== undefined) {
+      renderBoard(b.id, b.accent, cachedEntries[b.id]);
+    }
+  });
+}
+
+window.addEventListener('langchange', rerenderAll);
 
 renderAll();
 </script>

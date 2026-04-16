@@ -243,6 +243,7 @@
     }
   </style>
 
+  <script src="i18n.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -337,7 +338,7 @@
     <!-- Desktop nav links -->
     <nav class="hidden md:flex items-center gap-8 font-headline tracking-tighter uppercase text-sm">
       <a href="#featured"
-        class="text-primary border-b-2 border-primary pb-0.5 transition-colors cursor-pointer">Featured</a>
+        class="text-primary border-b-2 border-primary pb-0.5 transition-colors cursor-pointer" data-i18n="nav.featured">Featured</a>
     </nav>
 
     <!-- Right controls -->
@@ -347,8 +348,15 @@
         <span class="material-symbols-outlined text-primary" style="font-size:18px">search</span>
         <input
           class="bg-transparent border-none outline-none focus:ring-0 text-xs font-headline tracking-widest placeholder:text-on-surface-variant/50 text-on-surface w-32"
-          placeholder="SEARCH GAMES..." type="text" aria-label="Search games" />
+          placeholder="SEARCH GAMES..." type="text" aria-label="Search games" data-i18n-placeholder="search.placeholder" />
       </div>
+      <!-- Lang toggle -->
+      <button id="lang-toggle" onclick="toggleLang()"
+        class="flex items-center gap-1.5 text-on-surface-variant hover:text-primary transition-all btn border border-outline-variant/40 px-2 py-1"
+        aria-label="Cambiar a Español">
+        <span class="lang-flag text-sm leading-none">🇺🇸</span>
+        <span class="lang-code font-headline text-[10px] tracking-widest">EN</span>
+      </button>
       <!-- Icons -->
       <button class="text-on-surface-variant hover:text-primary transition-all active:scale-95 btn p-1"
         aria-label="Settings">
@@ -378,7 +386,7 @@
         </div>
         <div>
           <p class="text-primary font-bold text-sm tracking-widest">PLAYER ONE</p>
-          <p class="text-[10px] text-on-surface-variant tracking-wide">LVL 99 ARCADE MASTER</p>
+          <p class="text-[10px] text-on-surface-variant tracking-wide" data-i18n="player.level">LVL 99 ARCADE MASTER</p>
         </div>
       </div>
     </div>
@@ -387,30 +395,31 @@
     <nav class="flex flex-col gap-1 px-4 flex-1">
       <a class="nav-item active font-headline uppercase tracking-widest text-sm" href="#" aria-current="page">
         <span class="material-symbols-outlined" style="font-size:20px">sports_esports</span>
-        <span>Home</span>
+        <span data-i18n="nav.home">Home</span>
       </a>
-      <a class="nav-item font-headline uppercase tracking-widest text-sm" href="#">
+      <a class="nav-item font-headline uppercase tracking-widest text-sm" href="library.html">
         <span class="material-symbols-outlined" style="font-size:20px">library_books</span>
-        <span>Library</span>
+        <span data-i18n="nav.library">Library</span>
       </a>
       <a class="nav-item font-headline uppercase tracking-widest text-sm" href="#">
         <span class="material-symbols-outlined" style="font-size:20px">shopping_cart</span>
-        <span>Shop</span>
+        <span data-i18n="nav.shop">Shop</span>
       </a>
-      <a class="nav-item font-headline uppercase tracking-widest text-sm" href="#">
+      <a class="nav-item font-headline uppercase tracking-widest text-sm" href="stats.html">
         <span class="material-symbols-outlined" style="font-size:20px">bar_chart</span>
-        <span>Stats</span>
+        <span data-i18n="nav.stats">Stats</span>
       </a>
       <a class="nav-item font-headline uppercase tracking-widest text-sm" href="leaderboard.html">
         <span class="material-symbols-outlined" style="font-size:20px">emoji_events</span>
-        <span>Leaderboard</span>
+        <span data-i18n="nav.leaderboard">Leaderboard</span>
       </a>
     </nav>
 
     <!-- INSERT COIN -->
     <div class="px-4 mt-auto">
-      <button
-        class="w-full py-4 pixel-font bg-tertiary-container text-on-tertiary text-xs hover:bg-tertiary transition-colors coin-btn box-glow-purple btn">
+      <button data-action="insertcoin"
+        class="w-full py-4 pixel-font bg-tertiary-container text-on-tertiary text-xs hover:bg-tertiary transition-colors coin-btn box-glow-purple btn"
+        data-i18n="insert_coin">
         INSERT COIN
       </button>
     </div>
@@ -437,16 +446,19 @@
             class="text-6xl sm:text-7xl font-black font-headline tracking-tighter uppercase italic leading-none mb-4 hero-title">
             ARCADE
           </h1>
-          <p class="text-on-surface-variant text-base sm:text-lg font-medium mb-8 max-w-md leading-relaxed">
+          <p class="text-on-surface-variant text-base sm:text-lg font-medium mb-8 max-w-md leading-relaxed"
+            data-i18n="hero.subtitle">
             Enter the digital realm. High scores, neon lights, and infinite play await. Ready player one?
           </p>
           <div class="flex flex-wrap gap-4">
-            <button
-              class="px-8 py-3 bg-primary text-on-primary-container font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_#70f0f3] transition-all btn">
+            <button data-action="start"
+              class="px-8 py-3 bg-primary text-on-primary-container font-headline font-black tracking-widest uppercase text-sm hover:shadow-[0_0_20px_#70f0f3] transition-all btn"
+              data-i18n="hero.start">
               START ENGINE
             </button>
-            <button onclick="window.location.href='leaderboard.html'"
-              class="px-8 py-3 bg-secondary-container text-on-secondary-container font-headline font-black tracking-widest uppercase text-sm hover:bg-secondary transition-all btn">
+            <button data-action="viewranks" onclick="window.location.href='leaderboard.html'"
+              class="px-8 py-3 bg-secondary-container text-on-secondary-container font-headline font-black tracking-widest uppercase text-sm hover:bg-secondary transition-all btn"
+              data-i18n="hero.ranks">
               VIEW RANKS
             </button>
           </div>
@@ -459,7 +471,7 @@
     <section id="featured" class="mb-16" aria-labelledby="featured-heading">
       <div class="flex items-baseline gap-4 mb-8">
         <h2 id="featured-heading"
-          class="pixel-font text-xl sm:text-2xl text-primary tracking-widest uppercase glow-cyan">Featured</h2>
+          class="pixel-font text-xl sm:text-2xl text-primary tracking-widest uppercase glow-cyan" data-i18n="section.featured">Featured</h2>
         <div class="h-px flex-grow bg-gradient-to-r from-primary/40 to-transparent"></div>
       </div>
 
@@ -476,7 +488,7 @@
           <div class="p-6">
             <h3 class="text-xl sm:text-2xl font-headline font-black text-primary mb-2 uppercase tracking-tighter">Pixel
               Pilot</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Retro galactic dogfights across eight dangerous
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.pixel-pilot.desc">Retro galactic dogfights across eight dangerous
               pixelated sectors.</p>
             <button data-game="pixel-pilot.html"
               class="w-full py-3 bg-primary text-on-primary-container font-headline font-bold uppercase tracking-widest text-xs hover:shadow-[0_0_15px_#70f0f3] transition-all btn">
@@ -499,7 +511,7 @@
           <div class="p-6">
             <h3 class="text-xl sm:text-2xl font-headline font-black text-[#4dff91] mb-2 uppercase tracking-tighter"
               style="text-shadow:0 0 8px #4dff91">Dino Math</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Solve math gates across 5 sectors. Jump holes.
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.dino-math.desc">Solve math gates across 5 sectors. Jump holes.
               Teach your dino arithmetic!</p>
             <button data-game="dino-math.html"
               class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn"
@@ -521,7 +533,7 @@
           </div>
           <div class="p-6">
             <h3 class="text-xl sm:text-2xl font-headline font-black text-[#d77eff] mb-2 uppercase tracking-tighter" style="text-shadow:0 0 8px #d77eff">Simon</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Watch the colour sequence and repeat it. How far can you go?</p>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.simon.desc">Watch the colour sequence and repeat it. How far can you go?</p>
             <button data-game="simon.html" class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn" style="background:#d77eff;color:#1a0030;box-shadow:0 0 0 #d77eff" onmouseenter="this.style.boxShadow='0 0 15px #d77eff'" onmouseleave="this.style.boxShadow='0 0 0 #d77eff'">PLAY</button>
           </div>
         </article>
@@ -536,7 +548,7 @@
           </div>
           <div class="p-6">
             <h3 class="text-xl sm:text-2xl font-headline font-black text-[#ffd84d] mb-2 uppercase tracking-tighter" style="text-shadow:0 0 8px #ffd84d">Whack-a-Mole</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Tap every mole before it disappears! 60 seconds on the clock.</p>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.whack-a-mole.desc">Tap every mole before it disappears! 60 seconds on the clock.</p>
             <button data-game="whack-a-mole.html" class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn" style="background:#ffd84d;color:#000;box-shadow:0 0 0 #ffd84d" onmouseenter="this.style.boxShadow='0 0 15px #ffd84d'" onmouseleave="this.style.boxShadow='0 0 0 #ffd84d'">PLAY</button>
           </div>
         </article>
@@ -551,8 +563,24 @@
           </div>
           <div class="p-6">
             <h3 class="text-xl sm:text-2xl font-headline font-black text-[#b8a0fb] mb-2 uppercase tracking-tighter" style="text-shadow:0 0 8px #b8a0fb">Memory Match</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Flip the cards and find all 8 matching pairs with as few errors as possible.</p>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.memory-match.desc">Flip the cards and find all 8 matching pairs with as few errors as possible.</p>
             <button data-game="memory-match.html" class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn" style="background:#b8a0fb;color:#1a004a;box-shadow:0 0 0 #b8a0fb" onmouseenter="this.style.boxShadow='0 0 15px #b8a0fb'" onmouseleave="this.style.boxShadow='0 0 0 #b8a0fb'">PLAY</button>
+          </div>
+        </article>
+
+        <!-- Card: Color Flood -->
+        <article class="group relative bg-surface-container-low card-lift" aria-label="Color Flood">
+          <div class="aspect-video relative overflow-hidden">
+            <img src="images/color-flood.png" alt="Color Flood – flood the board with one color"
+              class="w-full h-full object-contain img-zoom" width="600" height="338" loading="lazy"
+              onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#ff6e84,#d77eff)'" />
+            <div class="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors duration-300"></div>
+            <div class="absolute bottom-0 left-0 bg-[#ff6e84] px-3 py-1 font-headline font-black text-xs text-black z-10">PUZZLE</div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl sm:text-2xl font-headline font-black text-[#ff6e84] mb-2 uppercase tracking-tighter" style="text-shadow:0 0 8px #ff6e84">Color Flood</h3>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.color-flood.desc">Flood the entire board with one color before you run out of moves!</p>
+            <button data-game="color-flood.html" class="w-full py-3 font-headline font-bold uppercase tracking-widest text-xs transition-all btn" style="background:#ff6e84;color:#000;box-shadow:0 0 0 #ff6e84" onmouseenter="this.style.boxShadow='0 0 15px #ff6e84'" onmouseleave="this.style.boxShadow='0 0 0 #ff6e84'">PLAY</button>
           </div>
         </article>
 
@@ -566,7 +594,7 @@
           </div>
           <div class="p-6">
             <h3 class="text-xl sm:text-2xl font-headline font-black text-primary mb-2 uppercase tracking-tighter">Pixel Art</h3>
-            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2">Draw anything you imagine! 16 colors, draw and fill tools. Your canvas awaits.</p>
+            <p class="text-on-surface-variant text-sm mb-6 line-clamp-2" data-i18n="game.pixel-art.desc">Draw anything you imagine! 16 colors, draw and fill tools. Your canvas awaits.</p>
             <button data-game="pixel-art.html" class="w-full py-3 bg-primary text-on-primary-container font-headline font-bold uppercase tracking-widest text-xs hover:shadow-[0_0_15px_#70f0f3] transition-all btn">PLAY</button>
           </div>
         </article>
@@ -586,25 +614,25 @@
     <a href="#" class="flex flex-col items-center justify-center gap-0.5 bottom-nav-active animate-pulse-slow"
       aria-current="page" aria-label="Home">
       <span class="material-symbols-outlined" style="font-size:22px">home</span>
-      <span class="font-headline text-[9px] uppercase font-bold">Home</span>
+      <span class="font-headline text-[9px] uppercase font-bold" data-i18n="mobile.home">Home</span>
     </a>
     <a href="#featured"
       class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors"
       aria-label="Games">
       <span class="material-symbols-outlined" style="font-size:22px">sports_esports</span>
-      <span class="font-headline text-[9px] uppercase font-bold">Games</span>
+      <span class="font-headline text-[9px] uppercase font-bold" data-i18n="mobile.games">Games</span>
     </a>
     <a href="#"
       class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors"
       aria-label="Social">
       <span class="material-symbols-outlined" style="font-size:22px">group</span>
-      <span class="font-headline text-[9px] uppercase font-bold">Social</span>
+      <span class="font-headline text-[9px] uppercase font-bold" data-i18n="mobile.social">Social</span>
     </a>
     <a href="#"
       class="flex flex-col items-center justify-center gap-0.5 text-on-surface-variant hover:text-primary transition-colors"
       aria-label="Profile">
       <span class="material-symbols-outlined" style="font-size:22px">person</span>
-      <span class="font-headline text-[9px] uppercase font-bold">Profile</span>
+      <span class="font-headline text-[9px] uppercase font-bold" data-i18n="mobile.profile">Profile</span>
     </a>
   </nav>
 
@@ -669,26 +697,22 @@
       });
     }
 
-    // ── PLAY / LAUNCH / ENTER VOID button feedback ──
-    document.querySelectorAll('button').forEach(btn => {
-      const text = btn.textContent.trim();
-      if (['PLAY', '>> LAUNCH', 'ENTER VOID', 'START ENGINE', 'VIEW RANKS', 'INSERT COIN'].some(t => text.includes(t))) {
-        btn.addEventListener('click', function () {
-          // If button links to a real game, navigate after brief loading flash
-          const gameSrc = this.dataset.game;
-          const original = this.textContent;
-          this.textContent = '▶ LOADING...';
-          this.disabled = true;
-          setTimeout(() => {
-            if (gameSrc) {
-              window.location.href = gameSrc;
-            } else {
-              this.textContent = original;
-              this.disabled = false;
-            }
-          }, 600);
-        });
-      }
+    // ── PLAY / action button feedback ──
+    document.querySelectorAll('button[data-game], button[data-action]').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const gameSrc = this.dataset.game;
+        const original = this.textContent;
+        this.textContent = t('loading_btn') || '▶ LOADING...';
+        this.disabled = true;
+        setTimeout(() => {
+          if (gameSrc) {
+            window.location.href = gameSrc;
+          } else {
+            this.textContent = original;
+            this.disabled = false;
+          }
+        }, 600);
+      });
     });
   </script>
 

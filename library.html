@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Library – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Be+Vietnam+Pro:wght@300;400;500;700&family=Silkscreen&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000341;
+      color: #e3e3ff;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      min-height: 100dvh;
+      background-image:
+        linear-gradient(to right, rgba(112,240,243,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(112,240,243,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .pixel-font { font-family: 'Silkscreen', cursive; }
+    .headline   { font-family: 'Space Grotesk', sans-serif; }
+
+    /* ── Header ── */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(0,3,65,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(112,240,243,0.2);
+      box-shadow: 0 0 15px rgba(112,240,243,0.3);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 72px; gap: 16px;
+    }
+
+    .logo {
+      font-size: 1.4rem; font-weight: 900; font-style: italic;
+      letter-spacing: -0.05em; text-transform: uppercase;
+      background: linear-gradient(135deg, #b8a0fb 0%, #d77eff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-decoration: none; white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* Search in header */
+    .header-search {
+      display: flex; align-items: center;
+      background: rgba(0,6,98,0.6);
+      border: 1px solid rgba(57,64,140,0.5);
+      padding: 8px 14px; gap: 8px;
+      flex: 1; max-width: 320px;
+      transition: border-color 0.2s;
+    }
+    .header-search:focus-within { border-color: rgba(112,240,243,0.5); }
+    .header-search svg { flex-shrink: 0; }
+    .header-search input {
+      background: transparent; border: none; outline: none;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+      color: #e3e3ff; width: 100%;
+    }
+    .header-search input::placeholder { color: rgba(103,111,189,0.6); }
+
+    #back-btn {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: #70f0f3; text-decoration: none;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 8px 16px; white-space: nowrap; flex-shrink: 0;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #back-btn:hover { border-color: #70f0f3; box-shadow: 0 0 10px rgba(112,240,243,0.4); }
+
+    /* ── Main ── */
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* Page title */
+    .page-title {
+      display: flex; align-items: baseline; gap: 16px; margin-bottom: 32px;
+    }
+    .page-title h1 {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      color: #70f0f3;
+      text-shadow: 0 0 10px #70f0f3, 0 0 20px #70f0f3;
+      text-transform: uppercase; letter-spacing: 4px;
+    }
+    .page-title .line {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(112,240,243,0.4), transparent);
+    }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: 12px; margin-bottom: 28px;
+    }
+
+    /* Category chips */
+    .chip-group { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; }
+
+    .chip {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+      padding: 6px 12px; cursor: pointer;
+      border: 1px solid rgba(57,64,140,0.6);
+      color: #676fbd; background: transparent;
+      transition: all 0.15s; user-select: none;
+    }
+    .chip:hover { border-color: #70f0f3; color: #70f0f3; }
+    .chip.active {
+      background: #70f0f3; color: #000341;
+      border-color: #70f0f3;
+      box-shadow: 0 0 10px rgba(112,240,243,0.4);
+    }
+
+    /* Right controls */
+    .toolbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .sort-select {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+      background: rgba(0,6,98,0.6); color: #9da5f7;
+      border: 1px solid rgba(57,64,140,0.5);
+      padding: 7px 10px; cursor: pointer; outline: none;
+      transition: border-color 0.15s;
+    }
+    .sort-select:focus { border-color: rgba(112,240,243,0.5); }
+    .sort-select option { background: #000662; }
+
+    .view-btn {
+      width: 34px; height: 34px;
+      background: transparent; border: 1px solid rgba(57,64,140,0.5);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #676fbd;
+      transition: all 0.15s;
+    }
+    .view-btn:hover { border-color: #70f0f3; color: #70f0f3; }
+    .view-btn.active { background: rgba(112,240,243,0.1); border-color: #70f0f3; color: #70f0f3; }
+
+    /* Result count */
+    .result-count {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: #39408c; margin-bottom: 20px;
+    }
+    .result-count span { color: #70f0f3; }
+
+    /* ── GRID VIEW ── */
+    #game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .game-card {
+      background: rgba(0,4,80,0.5);
+      border: 1px solid rgba(57,64,140,0.3);
+      transition: transform 0.25s ease, border-color 0.25s ease;
+      cursor: pointer;
+    }
+    .game-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(112,240,243,0.5);
+    }
+
+    .card-img-wrap {
+      position: relative; overflow: hidden;
+      aspect-ratio: 16 / 9;
+    }
+    .card-img-wrap img {
+      width: 100%; height: 100%; object-fit: contain;
+      transition: transform 0.4s ease;
+    }
+    .game-card:hover .card-img-wrap img { transform: scale(1.06); }
+    .card-img-overlay {
+      position: absolute; inset: 0;
+      background: rgba(0,3,65,0.15);
+      transition: background 0.3s;
+    }
+    .game-card:hover .card-img-overlay { background: transparent; }
+
+    .category-badge {
+      position: absolute; bottom: 0; left: 0;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; padding: 3px 10px;
+      color: #000;
+    }
+
+    .card-body { padding: 16px; }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: -0.02em; margin-bottom: 6px;
+    }
+    .card-desc {
+      font-size: 12px; color: #676fbd; line-height: 1.5;
+      margin-bottom: 14px; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    }
+    .record-tag {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 1px;
+      color: #39408c;
+    }
+    .record-score {
+      font-family: 'Silkscreen', cursive;
+      font-size: 13px; letter-spacing: 2px;
+    }
+
+    .play-btn {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+      padding: 8px 18px; border: none; cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .play-btn:active { transform: scale(0.95); }
+
+    /* ── LIST VIEW ── */
+    #game-grid.list-view {
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    #game-grid.list-view .game-card {
+      display: flex; align-items: stretch;
+    }
+    #game-grid.list-view .card-img-wrap {
+      width: 160px; min-width: 160px; aspect-ratio: unset;
+    }
+    @media (max-width: 480px) {
+      #game-grid.list-view .card-img-wrap { width: 100px; min-width: 100px; }
+    }
+    #game-grid.list-view .card-body {
+      display: flex; align-items: center; gap: 16px;
+      flex: 1; padding: 12px 16px; flex-wrap: wrap;
+    }
+    #game-grid.list-view .card-title {
+      font-size: 15px; margin-bottom: 2px; flex: 1; min-width: 100px;
+    }
+    #game-grid.list-view .card-desc { display: none; }
+    #game-grid.list-view .card-footer {
+      margin-left: auto; flex-shrink: 0; gap: 16px;
+    }
+    #game-grid.list-view .category-badge {
+      position: static; display: inline-block;
+      font-size: 9px; padding: 2px 8px; flex-shrink: 0;
+    }
+
+    /* Empty state */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center; padding: 80px 24px;
+      border: 1px dashed rgba(57,64,140,0.5);
+    }
+    .empty-state p {
+      font-family: 'Silkscreen', cursive;
+      font-size: 10px; letter-spacing: 3px; color: #39408c;
+      text-transform: uppercase;
+    }
+    .empty-state .big { font-size: 24px; margin-bottom: 16px; }
+
+    /* Background glows */
+    .bg-glow-1 {
+      position: fixed; bottom: 0; right: 0; width: 384px; height: 288px;
+      background: radial-gradient(ellipse at bottom right, rgba(112,240,243,0.08), transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+    .bg-glow-2 {
+      position: fixed; top: 0; left: 0; width: 384px; height: 384px;
+      background: radial-gradient(ellipse at top left, rgba(215,126,255,0.08), transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    #lang-toggle {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px;
+      background: transparent; color: #70f0f3;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 6px 10px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: border-color 0.2s, box-shadow 0.2s; flex-shrink: 0;
+    }
+    #lang-toggle:hover { border-color: #70f0f3; box-shadow: 0 0 8px rgba(112,240,243,0.3); }
+  </style>
+  <script src="i18n.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Nico's Arcade Room</a>
+
+  <div class="header-search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#676fbd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input id="search-input" type="text" placeholder="Search games..." autocomplete="off" spellcheck="false" data-i18n-placeholder="lib.search" />
+  </div>
+
+  <button id="lang-toggle" onclick="toggleLang()" aria-label="Cambiar a Español">
+    <span class="lang-flag">🇺🇸</span>
+    <span class="lang-code">EN</span>
+  </button>
+
+  <a href="index.html" id="back-btn" data-i18n="back">← Back</a>
+</header>
+
+<main>
+  <div class="page-title">
+    <h1 data-i18n="lib.title">Library</h1>
+    <div class="line"></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="chip-group" id="chip-group">
+      <button class="chip active" data-cat="ALL" data-i18n="lib.cat.all">All</button>
+      <button class="chip" data-cat="ACTION" data-i18n="lib.cat.action">Action</button>
+      <button class="chip" data-cat="EDUCATION" data-i18n="lib.cat.education">Education</button>
+      <button class="chip" data-cat="MEMORY" data-i18n="lib.cat.memory">Memory</button>
+      <button class="chip" data-cat="PUZZLE" data-i18n="lib.cat.puzzle">Puzzle</button>
+      <button class="chip" data-cat="CREATIVE" data-i18n="lib.cat.creative">Creative</button>
+    </div>
+
+    <div class="toolbar-right">
+      <select class="sort-select" id="sort-select">
+        <option value="az" data-i18n="lib.sort.az">A → Z</option>
+        <option value="za" data-i18n="lib.sort.za">Z → A</option>
+        <option value="top" data-i18n="lib.sort.top">Top Score</option>
+        <option value="plays" data-i18n="lib.sort.plays">Most Played</option>
+      </select>
+
+      <!-- Grid view -->
+      <button class="view-btn active" id="btn-grid" title="Grid view" aria-label="Grid view">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="0" y="0" width="6" height="6"/><rect x="10" y="0" width="6" height="6"/>
+          <rect x="0" y="10" width="6" height="6"/><rect x="10" y="10" width="6" height="6"/>
+        </svg>
+      </button>
+      <!-- List view -->
+      <button class="view-btn" id="btn-list" title="List view" aria-label="List view">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="0" y="1" width="16" height="3"/><rect x="0" y="7" width="16" height="3"/><rect x="0" y="13" width="16" height="3"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <p class="result-count" id="result-count"><span id="count-num">6</span> <span id="count-label">games</span></p>
+
+  <!-- Cards grid -->
+  <div id="game-grid"></div>
+</main>
+
+<div class="bg-glow-1" aria-hidden="true"></div>
+<div class="bg-glow-2" aria-hidden="true"></div>
+
+<script>
+const SB_URL = 'https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+
+const GAMES = [
+  {
+    key: 'pixel-pilot',
+    label: 'Pixel Pilot',
+    desc: 'Retro galactic dogfights across eight dangerous pixelated sectors.',
+    category: 'ACTION',
+    color: '#70f0f3',
+    file: 'pixel-pilot.html',
+    img: 'images/pixel-pilot.png',
+  },
+  {
+    key: 'dino-math',
+    label: 'Dino Math',
+    desc: 'Solve math gates across 5 sectors. Jump holes. Teach your dino arithmetic!',
+    category: 'EDUCATION',
+    color: '#4dff91',
+    file: 'dino-math.html',
+    img: 'images/dino-math.png',
+  },
+  {
+    key: 'simon',
+    label: 'Simon',
+    desc: 'Watch the colour sequence and repeat it. How far can you go?',
+    category: 'MEMORY',
+    color: '#d77eff',
+    file: 'simon.html',
+    img: 'images/simon.png',
+  },
+  {
+    key: 'whack-a-mole',
+    label: 'Whack-a-Mole',
+    desc: 'Tap every mole before it disappears! 60 seconds on the clock.',
+    category: 'ACTION',
+    color: '#ffd84d',
+    file: 'whack-a-mole.html',
+    img: 'images/whack-a-mole.png',
+  },
+  {
+    key: 'memory-match',
+    label: 'Memory Match',
+    desc: 'Flip the cards and find all 8 matching pairs with as few errors as possible.',
+    category: 'PUZZLE',
+    color: '#b8a0fb',
+    file: 'memory-match.html',
+    img: 'images/memory-match.png',
+  },
+  {
+    key: 'color-flood',
+    label: 'Color Flood',
+    desc: 'Flood the entire board with one color before you run out of moves!',
+    category: 'PUZZLE',
+    color: '#ff6e84',
+    file: 'color-flood.html',
+    img: 'images/color-flood.png',
+  },
+  {
+    key: 'pixel-art',
+    label: 'Pixel Art',
+    desc: 'Draw anything you imagine! 16 colors, draw and fill tools. Your canvas awaits.',
+    category: 'CREATIVE',
+    color: '#70f0f3',
+    file: 'pixel-art.html',
+    img: 'images/pixel-art.png',
+  },
+];
+
+// State
+let activeCategory = 'ALL';
+let activeSort = 'az';
+let isListView = false;
+let searchQuery = '';
+let scoreData = {}; // { 'game-key': { topScore, plays } }
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function fetchScores() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/scores?select=game,score&limit=2000`,
+      { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY } }
+    );
+    if (!res.ok) return;
+    const rows = await res.json();
+    const agg = {};
+    rows.forEach(r => {
+      if (!agg[r.game]) agg[r.game] = { topScore: 0, plays: 0 };
+      agg[r.game].plays++;
+      const s = parseInt(r.score) || 0;
+      if (s > agg[r.game].topScore) agg[r.game].topScore = s;
+    });
+    scoreData = agg;
+    render();
+  } catch (_) { /* scores stay empty — page still works */ }
+}
+
+function getFiltered() {
+  let list = GAMES.filter(g => {
+    const catMatch = activeCategory === 'ALL' || g.category === activeCategory;
+    const q = searchQuery.trim().toLowerCase();
+    const searchMatch = !q || g.label.toLowerCase().includes(q) || g.category.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q);
+    return catMatch && searchMatch;
+  });
+
+  list.sort((a, b) => {
+    const sa = scoreData[a.key] || { topScore: 0, plays: 0 };
+    const sb = scoreData[b.key] || { topScore: 0, plays: 0 };
+    if (activeSort === 'az')    return a.label.localeCompare(b.label);
+    if (activeSort === 'za')    return b.label.localeCompare(a.label);
+    if (activeSort === 'top')   return sb.topScore - sa.topScore;
+    if (activeSort === 'plays') return sb.plays - sa.plays;
+    return 0;
+  });
+
+  return list;
+}
+
+function makeCard(g) {
+  const sd = scoreData[g.key] || { topScore: 0, plays: 0 };
+  const topStr = sd.topScore ? String(sd.topScore).padStart(sd.topScore > 999 ? 6 : 4, '0') : '---';
+  const playsStr = sd.plays
+    ? `${sd.plays} ${sd.plays !== 1 ? (t('lib.plays')||'plays') : (t('lib.play')||'play')}`
+    : (t('lib.no_plays') || 'no plays');
+  const desc = t('game.' + g.key + '.desc') || g.desc;
+  const recordLabel = t('lib.record') || 'RECORD';
+  const playLabel = t('play') || 'PLAY';
+
+  const darkText = ['#70f0f3', '#4dff91', '#ffd84d', '#b8a0fb'].includes(g.color) ? '#000' : '#fff';
+  const darkBg = g.color;
+
+  return `
+    <article class="game-card" data-key="${esc(g.key)}">
+      <div class="card-img-wrap">
+        <img src="${esc(g.img)}" alt="${esc(g.label)}" loading="lazy" />
+        <div class="card-img-overlay"></div>
+        <span class="category-badge" style="background:${esc(g.color)}">${esc(g.category)}</span>
+      </div>
+      <div class="card-body">
+        <h2 class="card-title" style="color:${esc(g.color)};text-shadow:0 0 8px ${esc(g.color)}40">${esc(g.label)}</h2>
+        <p class="card-desc">${esc(desc)}</p>
+        <div class="card-footer">
+          <div>
+            <div class="record-tag">${recordLabel} · ${playsStr}</div>
+            <div class="record-score" style="color:${esc(g.color)}">${topStr}</div>
+          </div>
+          <button class="play-btn" style="background:${esc(darkBg)};color:${darkText};"
+            data-file="${esc(g.file)}">${playLabel}</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+function render() {
+  const list = getFiltered();
+  const grid = document.getElementById('game-grid');
+  const countEl = document.getElementById('count-num');
+  const countLabelEl = document.getElementById('count-label');
+
+  countEl.textContent = list.length;
+  if (countLabelEl) {
+    countLabelEl.textContent = list.length === 1 ? (t('lib.game_count')||'game') : (t('lib.games_count')||'games');
+  }
+
+  if (!list.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <p class="big">?</p>
+        <p>${t('lib.empty')||'No games match your search'}</p>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(makeCard).join('');
+
+  // Play button handlers
+  grid.querySelectorAll('.play-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const file = btn.dataset.file;
+      const orig = btn.textContent;
+      btn.textContent = '▶ ...';
+      btn.disabled = true;
+      setTimeout(() => { window.location.href = file; }, 400);
+    });
+  });
+
+  // Card click (anywhere except button)
+  grid.querySelectorAll('.game-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('.play-btn')) return;
+      const key = card.dataset.key;
+      const game = GAMES.find(g => g.key === key);
+      if (game) window.location.href = game.file;
+    });
+  });
+}
+
+// Category chips
+document.getElementById('chip-group').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  activeCategory = chip.dataset.cat;
+  render();
+});
+
+// Sort
+document.getElementById('sort-select').addEventListener('change', e => {
+  activeSort = e.target.value;
+  render();
+});
+
+// View toggle
+document.getElementById('btn-grid').addEventListener('click', () => {
+  isListView = false;
+  document.getElementById('game-grid').classList.remove('list-view');
+  document.getElementById('btn-grid').classList.add('active');
+  document.getElementById('btn-list').classList.remove('active');
+});
+document.getElementById('btn-list').addEventListener('click', () => {
+  isListView = true;
+  document.getElementById('game-grid').classList.add('list-view');
+  document.getElementById('btn-list').classList.add('active');
+  document.getElementById('btn-grid').classList.remove('active');
+});
+
+// Search
+let searchTimer;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = e.target.value;
+    render();
+  }, 180);
+});
+
+// Re-render on lang change
+window.addEventListener('langchange', render);
+
+// Init
+render();          // render immediately with no scores
+fetchScores();     // then re-render with live scores
+</script>
+
+</body>
+</html>

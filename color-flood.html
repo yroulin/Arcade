@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color Flood – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Silkscreen&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --c0: #70f0f3;
+      --c1: #4dff91;
+      --c2: #d77eff;
+      --c3: #ffd84d;
+      --c4: #b8a0fb;
+      --c5: #ff6e84;
+    }
+
+    body {
+      background: #000341;
+      color: #e3e3ff;
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      background-image:
+        linear-gradient(to right, rgba(112,240,243,0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(112,240,243,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      user-select: none;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; height: 64px; flex-shrink: 0;
+      background: rgba(0,3,65,0.7); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(112,240,243,0.2);
+      box-shadow: 0 0 15px rgba(112,240,243,0.2);
+    }
+
+    .logo {
+      font-size: 1.1rem; font-weight: 900; font-style: italic;
+      letter-spacing: -0.04em; text-transform: uppercase;
+      background: linear-gradient(135deg, #b8a0fb, #d77eff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-decoration: none;
+    }
+
+    .game-title-header {
+      font-family: 'Silkscreen', cursive;
+      font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+      color: #ff6e84; text-shadow: 0 0 8px #ff6e84;
+    }
+
+    #back-btn {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: #70f0f3; text-decoration: none;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 7px 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #back-btn:hover { border-color: #70f0f3; box-shadow: 0 0 10px rgba(112,240,243,0.3); }
+
+    /* ── Main ── */
+    main {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20px 16px 24px;
+      gap: 16px;
+    }
+
+    /* ── HUD ── */
+    .hud {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 480px;
+    }
+
+    .hud-block { text-align: center; }
+    .hud-label {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+      color: #676fbd; margin-bottom: 4px;
+    }
+    .hud-value {
+      font-family: 'Silkscreen', cursive;
+      font-size: 20px; letter-spacing: 2px;
+    }
+    #moves-left-val { color: #70f0f3; text-shadow: 0 0 10px rgba(112,240,243,0.6); }
+    #moves-used-val { color: #9da5f7; }
+
+    /* Move bar */
+    .move-bar-wrap {
+      flex: 1; margin: 0 12px;
+    }
+    .move-bar-track {
+      height: 6px; background: rgba(57,64,140,0.4);
+      position: relative; overflow: hidden;
+    }
+    .move-bar-fill {
+      height: 100%; width: 100%;
+      background: #70f0f3;
+      box-shadow: 0 0 6px #70f0f3;
+      transform-origin: left;
+      transition: transform 0.3s ease, background 0.3s ease;
+    }
+
+    /* ── Grid ── */
+    .grid-wrap {
+      width: min(calc(100vw - 32px), 480px);
+      aspect-ratio: 1;
+      border: 2px solid rgba(112,240,243,0.2);
+      box-shadow: 0 0 30px rgba(112,240,243,0.1);
+      position: relative;
+    }
+
+    #grid {
+      width: 100%; height: 100%;
+      display: grid;
+      grid-template-columns: repeat(var(--size), 1fr);
+      grid-template-rows: repeat(var(--size), 1fr);
+      gap: 0;
+    }
+
+    .cell {
+      transition: background-color 0.08s ease;
+    }
+
+    /* Controlled region overlay pulse */
+    .cell.controlled {
+      position: relative;
+    }
+
+    /* ── Color Picker ── */
+    .picker {
+      display: flex; gap: 10px; align-items: center;
+    }
+
+    .color-btn {
+      width: 52px; height: 52px;
+      border: 3px solid transparent;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+      flex-shrink: 0;
+    }
+    .color-btn:hover:not(:disabled) { transform: scale(1.12); }
+    .color-btn:active:not(:disabled) { transform: scale(0.92); }
+    .color-btn.current {
+      border-color: #fff;
+      box-shadow: 0 0 14px currentColor;
+      transform: scale(1.08);
+      cursor: default;
+    }
+    .color-btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; max-width: 480px; justify-content: center;
+    }
+
+    #new-game-btn {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      background: transparent; color: #676fbd;
+      border: 1px solid rgba(57,64,140,0.6);
+      padding: 10px 18px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    #new-game-btn:hover { border-color: #70f0f3; color: #70f0f3; }
+
+    /* Difficulty chips */
+    .diff-group { display: flex; gap: 6px; }
+    .diff-btn {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 1px; text-transform: uppercase;
+      padding: 6px 10px; cursor: pointer;
+      border: 1px solid rgba(57,64,140,0.5);
+      background: transparent; color: #676fbd;
+      transition: all 0.15s;
+    }
+    .diff-btn:hover { border-color: #ff6e84; color: #ff6e84; }
+    .diff-btn.active { background: #ff6e84; color: #000; border-color: #ff6e84; box-shadow: 0 0 8px rgba(255,110,132,0.4); }
+
+    /* ── Modal ── */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,3,65,0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-backdrop.visible { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #000662;
+      border: 1px solid rgba(57,64,140,0.8);
+      padding: 36px 32px;
+      max-width: 360px; width: 100%;
+      text-align: center;
+      transform: translateY(20px);
+      transition: transform 0.25s ease;
+    }
+    .modal-backdrop.visible .modal { transform: translateY(0); }
+
+    .modal-icon {
+      font-size: 40px; margin-bottom: 12px; display: block; line-height: 1;
+    }
+    .modal-title {
+      font-family: 'Silkscreen', cursive;
+      font-size: 18px; letter-spacing: 3px; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .modal-title.win  { color: #4dff91; text-shadow: 0 0 12px #4dff91; }
+    .modal-title.lose { color: #ff6e84; text-shadow: 0 0 12px #ff6e84; }
+
+    .modal-sub {
+      font-size: 13px; color: #676fbd; margin-bottom: 24px; line-height: 1.5;
+    }
+    .modal-score {
+      font-family: 'Silkscreen', cursive;
+      font-size: 28px; letter-spacing: 4px;
+      color: #ffd84d; text-shadow: 0 0 14px rgba(255,216,77,0.6);
+      margin-bottom: 20px;
+    }
+
+    .modal-input {
+      width: 100%; background: rgba(0,6,98,0.8);
+      border: 1px solid rgba(57,64,140,0.6); outline: none;
+      padding: 10px 14px;
+      font-family: 'Silkscreen', cursive;
+      font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+      color: #e3e3ff; margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .modal-input:focus { border-color: rgba(112,240,243,0.6); }
+    .modal-input::placeholder { color: #39408c; }
+
+    .modal-btn {
+      width: 100%; padding: 12px;
+      font-family: 'Silkscreen', cursive;
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      border: none; cursor: pointer;
+      transition: box-shadow 0.15s, opacity 0.15s;
+      margin-bottom: 8px;
+    }
+    .modal-btn.primary { background: #4dff91; color: #000; }
+    .modal-btn.primary:hover { box-shadow: 0 0 16px rgba(77,255,145,0.5); }
+    .modal-btn.secondary { background: transparent; color: #676fbd; border: 1px solid rgba(57,64,140,0.5); }
+    .modal-btn.secondary:hover { color: #e3e3ff; border-color: #676fbd; }
+    .modal-btn.danger { background: #ff6e84; color: #000; }
+    .modal-btn.danger:hover { box-shadow: 0 0 16px rgba(255,110,132,0.5); }
+
+    .saving-msg {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; color: #676fbd;
+      margin-top: 8px; min-height: 16px;
+    }
+
+    /* Bg glows */
+    .bg-glow-1 { position: fixed; bottom:0; right:0; width:300px; height:240px; background: radial-gradient(ellipse at bottom right, rgba(255,110,132,0.08), transparent 70%); pointer-events:none; z-index:-1; }
+    .bg-glow-2 { position: fixed; top:0; left:0; width:300px; height:300px; background: radial-gradient(ellipse at top left, rgba(215,126,255,0.08), transparent 70%); pointer-events:none; z-index:-1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    #lang-toggle {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px;
+      background: transparent; color: #70f0f3;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 5px 9px; cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: border-color 0.2s, box-shadow 0.2s; flex-shrink: 0;
+    }
+    #lang-toggle:hover { border-color: #70f0f3; box-shadow: 0 0 8px rgba(112,240,243,0.3); }
+  </style>
+  <script src="i18n.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Nico's Arcade</a>
+  <span class="game-title-header" data-i18n="flood.title">Color Flood</span>
+  <button id="lang-toggle" onclick="toggleLang()" aria-label="Cambiar a Español">
+    <span class="lang-flag">🇺🇸</span>
+    <span class="lang-code">EN</span>
+  </button>
+  <a href="index.html" id="back-btn" data-i18n="exit">← Exit</a>
+</header>
+
+<main>
+
+  <!-- HUD -->
+  <div class="hud">
+    <div class="hud-block">
+      <div class="hud-label" data-i18n="flood.moves_left">Moves Left</div>
+      <div class="hud-value" id="moves-left-val">25</div>
+    </div>
+
+    <div class="move-bar-wrap">
+      <div class="move-bar-track">
+        <div class="move-bar-fill" id="move-bar"></div>
+      </div>
+    </div>
+
+    <div class="hud-block">
+      <div class="hud-label" data-i18n="flood.used">Used</div>
+      <div class="hud-value" id="moves-used-val">00</div>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="grid-wrap">
+    <div id="grid"></div>
+  </div>
+
+  <!-- Color picker -->
+  <div class="picker" id="picker"></div>
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <div class="diff-group">
+      <button class="diff-btn active" data-diff="easy" data-i18n="flood.easy">Easy</button>
+      <button class="diff-btn" data-diff="medium" data-i18n="flood.medium">Med</button>
+      <button class="diff-btn" data-diff="hard" data-i18n="flood.hard">Hard</button>
+    </div>
+    <button id="new-game-btn" data-i18n="flood.new_game">New Game</button>
+  </div>
+
+</main>
+
+<!-- WIN Modal -->
+<div class="modal-backdrop" id="win-modal">
+  <div class="modal">
+    <span class="modal-icon">🎉</span>
+    <div class="modal-title win" data-i18n="flood.win_title">You Win!</div>
+    <p class="modal-sub" id="win-sub">Flooded the board!</p>
+    <div class="modal-score" id="win-score">000000</div>
+    <input class="modal-input" id="win-name" type="text" maxlength="12" placeholder="Enter name..." autocomplete="off" spellcheck="false" data-i18n-placeholder="flood.name_placeholder" />
+    <button class="modal-btn primary" id="win-save-btn" data-i18n="flood.save">Save Score</button>
+    <button class="modal-btn secondary" id="win-new-btn" data-i18n="flood.play_again">Play Again</button>
+    <p class="saving-msg" id="saving-msg"></p>
+  </div>
+</div>
+
+<!-- LOSE Modal -->
+<div class="modal-backdrop" id="lose-modal">
+  <div class="modal">
+    <span class="modal-icon">💀</span>
+    <div class="modal-title lose" data-i18n="flood.lose_title">Out of Moves</div>
+    <p class="modal-sub" id="lose-sub">So close! Try again.</p>
+    <button class="modal-btn danger" id="lose-retry-btn" data-i18n="flood.retry">Try Again</button>
+    <button class="modal-btn secondary" id="lose-menu-btn" data-i18n="flood.menu">← Menu</button>
+  </div>
+</div>
+
+<div class="bg-glow-1" aria-hidden="true"></div>
+<div class="bg-glow-2" aria-hidden="true"></div>
+
+<script>
+// ── Supabase ──────────────────────────────────────────
+const SB_URL = 'https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+
+async function saveScore(playerName, score) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/scores`, {
+      method: 'POST',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + SB_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ player_name: playerName, score, game: 'color-flood' }),
+    });
+  } catch (_) {}
+}
+
+// ── Colors ───────────────────────────────────────────
+const COLORS = ['#70f0f3', '#4dff91', '#d77eff', '#ffd84d', '#b8a0fb', '#ff6e84'];
+const NUM_COLORS = COLORS.length;
+
+// ── Difficulty ───────────────────────────────────────
+const DIFFICULTIES = {
+  easy:   { size: 10, maxMoves: 22 },
+  medium: { size: 12, maxMoves: 25 },
+  hard:   { size: 14, maxMoves: 28 },
+};
+let currentDiff = 'easy';
+
+// ── Game State ───────────────────────────────────────
+let SIZE, MAX_MOVES;
+let grid = [];       // 2D array of color indices 0-5
+let controlled = []; // 2D bool - is cell in flood region
+let movesUsed = 0;
+let gameOver = false;
+
+// ── Init ─────────────────────────────────────────────
+function initGame() {
+  const d = DIFFICULTIES[currentDiff];
+  SIZE = d.size;
+  MAX_MOVES = d.maxMoves;
+  movesUsed = 0;
+  gameOver = false;
+
+  // Build grid
+  grid = [];
+  controlled = [];
+  for (let r = 0; r < SIZE; r++) {
+    grid[r] = [];
+    controlled[r] = [];
+    for (let c = 0; c < SIZE; c++) {
+      grid[r][c] = Math.floor(Math.random() * NUM_COLORS);
+      controlled[r][c] = false;
+    }
+  }
+
+  // Seed controlled region from (0,0)
+  controlled[0][0] = true;
+  expandControlled(grid[0][0]);
+
+  document.getElementById('grid').style.setProperty('--size', SIZE);
+  renderGrid();
+  renderPicker();
+  updateHUD();
+  closeModals();
+}
+
+// Expand controlled region — absorb adjacent cells matching targetColor
+function expandControlled(targetColor) {
+  const queue = [];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (controlled[r][c]) queue.push([r, c]);
+    }
+  }
+  const visited = controlled.map(row => [...row]);
+  let head = 0;
+  while (head < queue.length) {
+    const [r, c] = queue[head++];
+    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE
+          && !visited[nr][nc] && grid[nr][nc] === targetColor) {
+        visited[nr][nc] = true;
+        controlled[nr][nc] = true;
+        queue.push([nr, nc]);
+      }
+    }
+  }
+}
+
+function flood(colorIdx) {
+  if (gameOver) return;
+  if (colorIdx === grid[0][0]) return; // same color — free
+
+  movesUsed++;
+
+  // Paint controlled region
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (controlled[r][c]) grid[r][c] = colorIdx;
+    }
+  }
+
+  // Absorb matching neighbors
+  expandControlled(colorIdx);
+
+  renderGrid();
+  renderPicker();
+  updateHUD();
+  checkEnd();
+}
+
+// ── Check win/lose ────────────────────────────────────
+function checkEnd() {
+  // Win: all cells controlled
+  let allControlled = true;
+  outer: for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      if (!controlled[r][c]) { allControlled = false; break outer; }
+    }
+  }
+
+  if (allControlled) {
+    gameOver = true;
+    const score = Math.max(0, (MAX_MOVES - movesUsed + 1)) * SIZE * SIZE;
+    setTimeout(() => showWin(score), 300);
+    return;
+  }
+
+  if (movesUsed >= MAX_MOVES) {
+    gameOver = true;
+    // Count uncontrolled cells
+    let remaining = 0;
+    for (let r = 0; r < SIZE; r++)
+      for (let c = 0; c < SIZE; c++)
+        if (!controlled[r][c]) remaining++;
+    setTimeout(() => showLose(remaining), 300);
+  }
+}
+
+// ── Render ────────────────────────────────────────────
+function renderGrid() {
+  const gridEl = document.getElementById('grid');
+  const currentColor = grid[0][0];
+
+  // Build fragment for performance
+  const cells = gridEl.children;
+  const total = SIZE * SIZE;
+
+  if (cells.length !== total) {
+    // Full rebuild
+    gridEl.innerHTML = '';
+    for (let r = 0; r < SIZE; r++) {
+      for (let c = 0; c < SIZE; c++) {
+        const div = document.createElement('div');
+        div.className = 'cell';
+        gridEl.appendChild(div);
+      }
+    }
+  }
+
+  let i = 0;
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cell = cells[i++];
+      const colorIdx = grid[r][c];
+      cell.style.backgroundColor = COLORS[colorIdx];
+      // Subtle brightness boost on controlled region
+      if (controlled[r][c]) {
+        cell.style.filter = 'brightness(1.15)';
+      } else {
+        cell.style.filter = 'brightness(0.75)';
+      }
+    }
+  }
+}
+
+function renderPicker() {
+  const picker = document.getElementById('picker');
+  const currentColor = grid[0][0];
+  picker.innerHTML = '';
+  COLORS.forEach((color, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn' + (idx === currentColor ? ' current' : '');
+    btn.style.background = color;
+    btn.style.color = color; // for currentColor CSS trick
+    if (idx === currentColor) btn.disabled = true;
+    btn.setAttribute('aria-label', `Flood with color ${idx + 1}`);
+    btn.addEventListener('click', () => flood(idx));
+    picker.appendChild(btn);
+  });
+}
+
+function updateHUD() {
+  const left = Math.max(0, MAX_MOVES - movesUsed);
+  const pct = left / MAX_MOVES;
+  document.getElementById('moves-left-val').textContent = String(left).padStart(2, '0');
+  document.getElementById('moves-used-val').textContent = String(movesUsed).padStart(2, '0');
+
+  const bar = document.getElementById('move-bar');
+  bar.style.transform = `scaleX(${pct})`;
+
+  if (pct <= 0.25) {
+    bar.style.background = '#ff6e84';
+    bar.style.boxShadow = '0 0 6px #ff6e84';
+    document.getElementById('moves-left-val').style.color = '#ff6e84';
+    document.getElementById('moves-left-val').style.textShadow = '0 0 10px rgba(255,110,132,0.7)';
+  } else if (pct <= 0.5) {
+    bar.style.background = '#ffd84d';
+    bar.style.boxShadow = '0 0 6px #ffd84d';
+    document.getElementById('moves-left-val').style.color = '#ffd84d';
+    document.getElementById('moves-left-val').style.textShadow = '0 0 10px rgba(255,216,77,0.7)';
+  } else {
+    bar.style.background = '#70f0f3';
+    bar.style.boxShadow = '0 0 6px #70f0f3';
+    document.getElementById('moves-left-val').style.color = '#70f0f3';
+    document.getElementById('moves-left-val').style.textShadow = '0 0 10px rgba(112,240,243,0.6)';
+  }
+}
+
+// ── Modals ────────────────────────────────────────────
+function showWin(score) {
+  const movesLeft = MAX_MOVES - movesUsed;
+  const movesWord = movesLeft === 1 ? (t('flood.move')||'move') : (t('flood.moves')||'moves');
+  document.getElementById('win-score').textContent = String(score).padStart(6, '0');
+  document.getElementById('win-sub').textContent =
+    `${movesUsed} ${t('flood.moves')||'moves'} · ${movesLeft} ${movesWord} ${t('flood.spare')||'to spare'}`;
+  document.getElementById('win-name').value = '';
+  document.getElementById('saving-msg').textContent = '';
+  document.getElementById('win-modal').classList.add('visible');
+  // Re-apply translations to update placeholder/button text
+  applyTranslations();
+  setTimeout(() => document.getElementById('win-name').focus(), 300);
+
+  document.getElementById('win-save-btn').onclick = async () => {
+    const name = document.getElementById('win-name').value.trim();
+    if (!name) { document.getElementById('win-name').focus(); return; }
+    document.getElementById('saving-msg').textContent = t('flood.saving') || 'Saving···';
+    document.getElementById('win-save-btn').disabled = true;
+    await saveScore(name, score);
+    document.getElementById('saving-msg').textContent = t('flood.saved') || 'Saved! ✓';
+    setTimeout(() => {
+      closeModals();
+      initGame();
+    }, 1000);
+  };
+
+  document.getElementById('win-name').addEventListener('keydown', function handler(e) {
+    if (e.key === 'Enter') {
+      document.getElementById('win-save-btn').click();
+      this.removeEventListener('keydown', handler);
+    }
+  });
+}
+
+function showLose(remaining) {
+  const cellWord = remaining === 1 ? (t('flood.cell')||'cell') : (t('flood.cells')||'cells');
+  document.getElementById('lose-sub').textContent =
+    `${remaining} ${cellWord} ${t('flood.left_unflooded')||'left unflooded. So close!'}`;
+  document.getElementById('lose-modal').classList.add('visible');
+}
+
+function closeModals() {
+  document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('visible'));
+}
+
+// ── Controls ──────────────────────────────────────────
+document.getElementById('new-game-btn').addEventListener('click', initGame);
+
+document.getElementById('lose-retry-btn').addEventListener('click', () => { closeModals(); initGame(); });
+document.getElementById('lose-menu-btn').addEventListener('click', () => { window.location.href = 'index.html'; });
+document.getElementById('win-new-btn').addEventListener('click', () => { closeModals(); initGame(); });
+
+// Difficulty
+document.querySelectorAll('.diff-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentDiff = btn.dataset.diff;
+    initGame();
+  });
+});
+
+// Keyboard: 1-6 = pick color, R = new game
+document.addEventListener('keydown', e => {
+  if (e.key >= '1' && e.key <= '6') flood(parseInt(e.key) - 1);
+  if (e.key === 'r' || e.key === 'R') initGame();
+});
+
+// ── Start ─────────────────────────────────────────────
+initGame();
+</script>
+
+</body>
+</html>

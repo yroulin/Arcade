@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stats – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;900&family=Silkscreen&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000341;
+      color: #e3e3ff;
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100dvh;
+      background-image:
+        linear-gradient(to right, rgba(112,240,243,0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(112,240,243,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .pixel-font { font-family: 'Silkscreen', cursive; }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(0,3,65,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(112,240,243,0.2);
+      box-shadow: 0 0 15px rgba(112,240,243,0.3);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 72px;
+    }
+
+    .logo {
+      font-size: 1.4rem; font-weight: 900; font-style: italic;
+      letter-spacing: -0.05em; text-transform: uppercase;
+      background: linear-gradient(135deg, #b8a0fb 0%, #d77eff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      text-decoration: none;
+    }
+
+    #back-btn {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+      color: #70f0f3; text-decoration: none;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 8px 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #back-btn:hover {
+      border-color: #70f0f3;
+      box-shadow: 0 0 10px rgba(112,240,243,0.4);
+    }
+
+    /* Main layout */
+    main {
+      max-width: 960px; margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* Page title */
+    .page-title {
+      display: flex; align-items: baseline; gap: 16px; margin-bottom: 48px;
+    }
+    .page-title h1 {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(1.2rem, 4vw, 1.8rem);
+      color: #70f0f3;
+      text-shadow: 0 0 10px #70f0f3, 0 0 20px #70f0f3;
+      text-transform: uppercase; letter-spacing: 4px;
+    }
+    .page-title .line {
+      flex: 1; height: 1px;
+      background: linear-gradient(to right, rgba(112,240,243,0.4), transparent);
+    }
+
+    /* Section heading */
+    .section-heading {
+      font-family: 'Silkscreen', cursive;
+      font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+      color: #676fbd; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .section-heading::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(57,64,140,0.6);
+    }
+
+    /* ── OVERVIEW CARDS ── */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    @media (min-width: 640px) {
+      .overview-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .stat-card {
+      background: rgba(0,4,80,0.5);
+      border: 1px solid rgba(57,64,140,0.5);
+      padding: 20px 16px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .stat-card:hover { border-color: rgba(112,240,243,0.4); }
+    .stat-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    }
+    .stat-card.accent-cyan::before  { background: #70f0f3; box-shadow: 0 0 8px #70f0f3; }
+    .stat-card.accent-green::before { background: #4dff91; box-shadow: 0 0 8px #4dff91; }
+    .stat-card.accent-purple::before { background: #d77eff; box-shadow: 0 0 8px #d77eff; }
+    .stat-card.accent-yellow::before { background: #ffd84d; box-shadow: 0 0 8px #ffd84d; }
+
+    .stat-label {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+      color: #676fbd; margin-bottom: 12px;
+    }
+    .stat-value {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(1.2rem, 3vw, 1.8rem);
+      line-height: 1;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+    .stat-value.cyan   { color: #70f0f3; text-shadow: 0 0 12px rgba(112,240,243,0.6); }
+    .stat-value.green  { color: #4dff91; text-shadow: 0 0 12px rgba(77,255,145,0.6); }
+    .stat-value.purple { color: #d77eff; text-shadow: 0 0 12px rgba(215,126,255,0.6); }
+    .stat-value.yellow { color: #ffd84d; text-shadow: 0 0 12px rgba(255,216,77,0.6); }
+    .stat-sub {
+      font-size: 11px; color: #39408c; letter-spacing: 0.5px;
+    }
+
+    /* Loading shimmer */
+    .shimmer {
+      background: linear-gradient(90deg, rgba(57,64,140,0.2) 25%, rgba(57,64,140,0.4) 50%, rgba(57,64,140,0.2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      height: 1.6rem; width: 80%;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── PER-GAME TABLE ── */
+    .game-table-wrap { margin-bottom: 48px; overflow-x: auto; }
+
+    .game-table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid rgba(57,64,140,0.5);
+    }
+    .game-table th {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+      color: #676fbd; text-align: left;
+      padding: 10px 14px; border-bottom: 1px solid rgba(57,64,140,0.5);
+      background: rgba(0,6,98,0.4);
+    }
+    .game-table th:not(:first-child) { text-align: right; }
+
+    .game-table td {
+      padding: 13px 14px;
+      border-bottom: 1px solid rgba(57,64,140,0.2);
+      font-size: 13px;
+      vertical-align: middle;
+    }
+    .game-table tr:last-child td { border-bottom: none; }
+    .game-table tr { background: rgba(0,4,80,0.3); transition: background 0.15s; }
+    .game-table tr:hover { background: rgba(0,8,115,0.5); }
+    .game-table td:not(:first-child) { text-align: right; }
+
+    .game-name-cell {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .game-dot-sm {
+      width: 8px; height: 8px; flex-shrink: 0;
+    }
+    .game-name-label {
+      font-family: 'Silkscreen', cursive;
+      font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    }
+
+    .num-cell {
+      font-family: 'Silkscreen', cursive;
+      font-size: 12px; letter-spacing: 1px;
+    }
+
+    .champion-cell {
+      font-family: 'Silkscreen', cursive;
+      font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+      color: #e3e3ff;
+    }
+
+    .bar-wrap {
+      display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+    }
+    .mini-bar {
+      height: 4px; min-width: 4px; max-width: 80px;
+      background: currentColor; opacity: 0.5;
+      transition: width 0.6s ease;
+    }
+
+    /* ── HALL OF FAME ── */
+    .hof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    @media (max-width: 520px) {
+      .hof-grid { grid-template-columns: 1fr; }
+    }
+
+    .hof-card {
+      background: rgba(0,4,80,0.5);
+      border: 1px solid rgba(57,64,140,0.5);
+      padding: 24px 16px;
+      text-align: center;
+      position: relative;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .hof-card:hover { transform: translateY(-4px); border-color: rgba(112,240,243,0.3); }
+
+    .hof-card.rank-1 { border-color: rgba(255,216,77,0.4); }
+    .hof-card.rank-2 { border-color: rgba(192,200,232,0.4); }
+    .hof-card.rank-3 { border-color: rgba(255,154,92,0.4); }
+
+    .hof-medal {
+      font-size: 32px; display: block; margin-bottom: 12px;
+      line-height: 1;
+    }
+    .hof-name {
+      font-family: 'Silkscreen', cursive;
+      font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+      color: #e3e3ff; margin-bottom: 8px;
+      word-break: break-all;
+    }
+    .hof-score {
+      font-family: 'Silkscreen', cursive;
+      font-size: 18px; letter-spacing: 2px;
+    }
+    .hof-card.rank-1 .hof-score { color: #ffd84d; text-shadow: 0 0 10px rgba(255,216,77,0.6); }
+    .hof-card.rank-2 .hof-score { color: #c0c8e8; text-shadow: 0 0 8px rgba(192,200,232,0.5); }
+    .hof-card.rank-3 .hof-score { color: #ff9a5c; text-shadow: 0 0 8px rgba(255,154,92,0.5); }
+    .hof-games-badge {
+      margin-top: 10px;
+      font-size: 10px; color: #676fbd; letter-spacing: 1px;
+    }
+
+    /* Background glows */
+    .bg-glow-1 {
+      position: fixed; bottom: 0; right: 0; width: 384px; height: 288px;
+      background: radial-gradient(ellipse at bottom right, rgba(112,240,243,0.08), transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+    .bg-glow-2 {
+      position: fixed; top: 0; left: 0; width: 384px; height: 384px;
+      background: radial-gradient(ellipse at top left, rgba(215,126,255,0.08), transparent 70%);
+      pointer-events: none; z-index: -1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+
+    #lang-toggle {
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px; letter-spacing: 2px;
+      background: transparent; color: #70f0f3;
+      border: 1px solid rgba(112,240,243,0.3);
+      padding: 6px 10px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      transition: border-color 0.2s, box-shadow 0.2s; flex-shrink: 0;
+    }
+    #lang-toggle:hover { border-color: #70f0f3; box-shadow: 0 0 8px rgba(112,240,243,0.3); }
+  </style>
+  <script src="i18n.js"></script>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">Nico's Arcade Room</a>
+  <button id="lang-toggle" onclick="toggleLang()" aria-label="Cambiar a Español">
+    <span class="lang-flag">🇺🇸</span>
+    <span class="lang-code">EN</span>
+  </button>
+  <a href="index.html" id="back-btn" data-i18n="back">← Back</a>
+</header>
+
+<main>
+
+  <!-- Page title -->
+  <div class="page-title">
+    <h1 data-i18n="stats.title">Stats</h1>
+    <div class="line"></div>
+  </div>
+
+  <!-- ── OVERVIEW ── -->
+  <p class="section-heading" data-i18n="stats.overview">Overview</p>
+  <div class="overview-grid">
+    <div class="stat-card accent-cyan">
+      <p class="stat-label" data-i18n="stats.total_plays">Total Plays</p>
+      <div id="stat-total" class="stat-value cyan"><div class="shimmer"></div></div>
+      <p class="stat-sub" id="stat-total-sub">&nbsp;</p>
+    </div>
+    <div class="stat-card accent-yellow">
+      <p class="stat-label" data-i18n="stats.best_score">Best Score</p>
+      <div id="stat-best" class="stat-value yellow"><div class="shimmer"></div></div>
+      <p class="stat-sub" id="stat-best-sub">&nbsp;</p>
+    </div>
+    <div class="stat-card accent-purple">
+      <p class="stat-label" data-i18n="stats.top_player">Top Player</p>
+      <div id="stat-player" class="stat-value purple"><div class="shimmer"></div></div>
+      <p class="stat-sub" id="stat-player-sub">&nbsp;</p>
+    </div>
+    <div class="stat-card accent-green">
+      <p class="stat-label" data-i18n="stats.hottest">Hottest Game</p>
+      <div id="stat-hot" class="stat-value green"><div class="shimmer"></div></div>
+      <p class="stat-sub" id="stat-hot-sub">&nbsp;</p>
+    </div>
+  </div>
+
+  <!-- ── PER-GAME ── -->
+  <p class="section-heading" data-i18n="stats.by_game">By Game</p>
+  <div class="game-table-wrap">
+    <table class="game-table">
+      <thead>
+        <tr>
+          <th>Game</th>
+          <th>Plays</th>
+          <th>Avg Score</th>
+          <th>Best Score</th>
+          <th>Champion</th>
+        </tr>
+      </thead>
+      <tbody id="game-stats-body">
+        <!-- filled by JS -->
+        <tr><td colspan="5" style="text-align:center;padding:32px;color:#39408c;font-family:'Silkscreen',cursive;font-size:9px;letter-spacing:2px">LOADING···</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── HALL OF FAME ── -->
+  <p class="section-heading" data-i18n="stats.hof">Hall of Fame</p>
+  <div class="hof-grid" id="hof-grid">
+    <!-- filled by JS -->
+    <div class="hof-card" style="text-align:center;padding:40px"><div class="shimmer" style="margin:auto"></div></div>
+    <div class="hof-card" style="text-align:center;padding:40px"><div class="shimmer" style="margin:auto"></div></div>
+    <div class="hof-card" style="text-align:center;padding:40px"><div class="shimmer" style="margin:auto"></div></div>
+  </div>
+
+</main>
+
+<div class="bg-glow-1" aria-hidden="true"></div>
+<div class="bg-glow-2" aria-hidden="true"></div>
+
+<script>
+const SB_URL = 'https://eqagokpvhmobxqnyixqu.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVxYWdva3B2aG1vYnhxbnlpeHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNTExOTQsImV4cCI6MjA5MTkyNzE5NH0.MNVg8h3Xc3m3kip3vRofYK_FoDX-WAm9zibzF0Wb-Oo';
+
+const GAMES = [
+  { key: 'pixel-pilot',  label: 'Pixel Pilot',   color: '#70f0f3', accentClass: 'cyan'   },
+  { key: 'dino-math',    label: 'Dino Math',      color: '#4dff91', accentClass: 'green'  },
+  { key: 'simon',        label: 'Simon',          color: '#d77eff', accentClass: 'purple' },
+  { key: 'whack-a-mole', label: 'Whack-a-Mole',  color: '#ffd84d', accentClass: 'yellow' },
+  { key: 'memory-match', label: 'Memory Match',   color: '#b8a0fb', accentClass: 'violet' },
+  { key: 'color-flood',  label: 'Color Flood',    color: '#ff6e84', accentClass: 'red'    },
+];
+
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let cachedRows = [];
+
+async function fetchAll() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/scores?select=player_name,score,game,created_at&order=score.desc&limit=2000`,
+      { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } }
+    );
+    if (!res.ok) return [];
+    return res.json();
+  } catch(_) { return []; }
+}
+
+function renderOverview(rows) {
+  const total = rows.length;
+  document.getElementById('stat-total').textContent = total.toLocaleString();
+  document.getElementById('stat-total-sub').textContent =
+    total === 1 ? `1 ${t('stats.session')}` : `${total} ${t('stats.sessions')}`;
+
+  const best = rows.reduce((max, r) => (parseInt(r.score) > parseInt(max.score||0)) ? r : max, { score: 0, player_name: '---', game: '' });
+  document.getElementById('stat-best').textContent = String(parseInt(best.score)||0).padStart(6,'0');
+  document.getElementById('stat-best-sub').textContent = best.player_name && best.game
+    ? `${best.player_name} · ${best.game}` : (t('stats.no_data') || 'No data yet');
+
+  const byPlayer = {};
+  rows.forEach(r => { byPlayer[r.player_name] = (byPlayer[r.player_name] || 0) + 1; });
+  const topEntry = Object.entries(byPlayer).sort((a,b) => b[1]-a[1])[0];
+  if (topEntry) {
+    document.getElementById('stat-player').textContent = topEntry[0].slice(0,8).toUpperCase();
+    document.getElementById('stat-player-sub').textContent =
+      `${topEntry[1]} ${topEntry[1]===1 ? t('stats.play') : t('stats.plays')}`;
+  } else {
+    document.getElementById('stat-player').textContent = '---';
+    document.getElementById('stat-player-sub').textContent = t('stats.no_players') || 'No players yet';
+  }
+
+  const byGame = {};
+  rows.forEach(r => { byGame[r.game] = (byGame[r.game]||0) + 1; });
+  const hotEntry = Object.entries(byGame).sort((a,b) => b[1]-a[1])[0];
+  if (hotEntry) {
+    const gameMeta = GAMES.find(g => g.key === hotEntry[0]);
+    document.getElementById('stat-hot').textContent = (gameMeta ? gameMeta.label : hotEntry[0]).slice(0,9).toUpperCase();
+    document.getElementById('stat-hot-sub').textContent =
+      `${hotEntry[1]} ${hotEntry[1]===1 ? t('stats.play') : t('stats.plays')}`;
+  } else {
+    document.getElementById('stat-hot').textContent = '---';
+    document.getElementById('stat-hot-sub').textContent = t('stats.no_data') || 'No data yet';
+  }
+}
+
+function renderGameTable(rows) {
+  const tbody = document.getElementById('game-stats-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#39408c;font-family:'Silkscreen',cursive;font-size:9px;letter-spacing:2px">${t('stats.no_data')||'NO DATA YET'}</td></tr>`;
+    return;
+  }
+
+  const playCounts = GAMES.map(g => rows.filter(r => r.game === g.key).length);
+  const maxPlays = Math.max(...playCounts, 1);
+
+  // Re-render table headers
+  const tableWrap = document.querySelector('.game-table-wrap');
+  const existingTable = tableWrap.querySelector('.game-table');
+  if (existingTable) {
+    const thead = existingTable.querySelector('thead tr');
+    if (thead) {
+      thead.innerHTML = `
+        <th>${t('stats.col.game')||'Game'}</th>
+        <th>${t('stats.col.plays')||'Plays'}</th>
+        <th>${t('stats.col.avg')||'Avg Score'}</th>
+        <th>${t('stats.col.best')||'Best Score'}</th>
+        <th>${t('stats.col.champion')||'Champion'}</th>`;
+    }
+  }
+
+  const rowsHTML = GAMES.map((g) => {
+    const gameRows = rows.filter(r => r.game === g.key);
+    const plays = gameRows.length;
+    const avgScore = plays ? Math.round(gameRows.reduce((s, r) => s + parseInt(r.score||0), 0) / plays) : 0;
+    const bestRow = gameRows.reduce((max, r) => parseInt(r.score) > parseInt(max.score||0) ? r : max, { score: 0, player_name: '' });
+    const bestScore = parseInt(bestRow.score) || 0;
+    const champion = bestRow.player_name || '---';
+    const barWidth = Math.max(4, Math.round((plays / maxPlays) * 80));
+
+    return `
+      <tr>
+        <td>
+          <div class="game-name-cell">
+            <svg class="game-dot-sm" viewBox="0 0 8 8"><rect width="8" height="8" fill="${esc(g.color)}" style="filter:drop-shadow(0 0 3px ${esc(g.color)})"/></svg>
+            <span class="game-name-label" style="color:${esc(g.color)};text-shadow:0 0 6px ${esc(g.color)}">${esc(g.label)}</span>
+          </div>
+        </td>
+        <td>
+          <div class="bar-wrap">
+            <span class="num-cell" style="color:${esc(g.color)}">${plays}</span>
+            <div class="mini-bar" style="color:${esc(g.color)};width:${barWidth}px"></div>
+          </div>
+        </td>
+        <td><span class="num-cell" style="color:#9da5f7">${avgScore ? String(avgScore).padStart(4,'0') : '—'}</span></td>
+        <td><span class="num-cell" style="color:${esc(g.color)}">${bestScore ? String(bestScore).padStart(bestScore>999?6:4,'0') : '—'}</span></td>
+        <td><span class="champion-cell">${esc(champion.slice(0,12))}</span></td>
+      </tr>`;
+  }).join('');
+
+  tbody.innerHTML = rowsHTML;
+}
+
+function renderHOF(rows) {
+  const hofGrid = document.getElementById('hof-grid');
+  if (!rows.length) {
+    hofGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:#39408c;font-family:'Silkscreen',cursive;font-size:9px;letter-spacing:2px">${t('stats.no_players')||'NO PLAYERS YET'}</div>`;
+    return;
+  }
+
+  const playerBest = {};
+  rows.forEach(r => {
+    const name = r.player_name;
+    const score = parseInt(r.score) || 0;
+    if (!playerBest[name]) playerBest[name] = {};
+    if (!playerBest[name][r.game] || score > playerBest[name][r.game]) {
+      playerBest[name][r.game] = score;
+    }
+  });
+
+  const ranked = Object.entries(playerBest)
+    .map(([name, games]) => ({
+      name,
+      total: Object.values(games).reduce((s, v) => s + v, 0),
+      gameCount: Object.keys(games).length,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 3);
+
+  if (!ranked.length) {
+    hofGrid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:48px;color:#39408c;font-family:'Silkscreen',cursive;font-size:9px;letter-spacing:2px">${t('stats.no_players')||'NO PLAYERS YET'}</div>`;
+    return;
+  }
+
+  hofGrid.innerHTML = ranked.map((p, i) => `
+    <div class="hof-card rank-${i+1}">
+      <span class="hof-medal">${MEDALS[i]}</span>
+      <div class="hof-name">${esc(p.name.slice(0,12))}</div>
+      <div class="hof-score">${p.total.toLocaleString()}</div>
+      <div class="hof-games-badge">${p.gameCount} ${p.gameCount===1 ? t('stats.game') : t('stats.games')} · ${t('stats.combined')}</div>
+    </div>`
+  ).join('');
+}
+
+function rerenderAll() {
+  renderOverview(cachedRows);
+  renderGameTable(cachedRows);
+  renderHOF(cachedRows);
+}
+
+window.addEventListener('langchange', rerenderAll);
+
+async function init() {
+  cachedRows = await fetchAll();
+  renderOverview(cachedRows);
+  renderGameTable(cachedRows);
+  renderHOF(cachedRows);
+}
+
+init();
+</script>
+
+</body>
+</html>
