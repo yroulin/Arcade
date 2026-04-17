@@ -49,6 +49,26 @@
       'game.memory-match.desc': 'Flip the cards and find all 8 matching pairs with as few errors as possible.',
       'game.pixel-art.desc': 'Draw anything you imagine! 16 colors, draw and fill tools. Your canvas awaits.',
       'game.color-flood.desc': 'Flood the entire board with one color before you run out of moves!',
+      'game.geo-dash.desc': 'Jump over spikes and blocks in this rhythm platformer. How far can you go?',
+
+      // Neon Surge game
+      'gd.title':          'Neon Surge',
+      'gd.score':          'Score',
+      'gd.best':           'Best',
+      'gd.attempts':       'Attempts',
+      'gd.normal':         'Normal',
+      'gd.hard':           'Hard',
+      'gd.insane':         'Insane',
+      'gd.game_over':      'Game Over',
+      'gd.save':           'Save Score',
+      'gd.skip':           'Skip & Retry',
+      'gd.menu':           '← Menu',
+      'gd.name_placeholder': 'AAA',
+      'gd.saving':         'Saving···',
+      'gd.saved':          'Saved! ✓',
+      'gd.new_best':       'New best score!',
+      'gd.nice_try':       'Nice try!',
+      'gd.press_to_start': 'SPACE · CLICK · TAP  TO START',
 
       // Leaderboard page
       'lb.title': 'Leaderboard',
@@ -178,6 +198,26 @@
       'game.memory-match.desc': 'Girá las cartas y encontrá los 8 pares con los menos errores posibles.',
       'game.pixel-art.desc': '¡Dibujá lo que imagines! 16 colores, herramientas de dibujo y relleno. Tu lienzo espera.',
       'game.color-flood.desc': '¡Inundá todo el tablero con un solo color antes de quedarte sin movimientos!',
+      'game.geo-dash.desc': '¡Saltá obstáculos y bloques en este plataformero rítmico. ¿Qué tan lejos llegarás?',
+
+      // Neon Surge game
+      'gd.title':          'Neon Surge',
+      'gd.score':          'Puntaje',
+      'gd.best':           'Mejor',
+      'gd.attempts':       'Intentos',
+      'gd.normal':         'Normal',
+      'gd.hard':           'Difícil',
+      'gd.insane':         'Insano',
+      'gd.game_over':      'Game Over',
+      'gd.save':           'Guardar Puntaje',
+      'gd.skip':           'Saltear y Reintentar',
+      'gd.menu':           '← Menú',
+      'gd.name_placeholder': 'AAA',
+      'gd.saving':         'Guardando···',
+      'gd.saved':          '¡Guardado! ✓',
+      'gd.new_best':       '¡Nuevo récord!',
+      'gd.nice_try':       '¡Buen intento!',
+      'gd.press_to_start': 'ESPACIO · CLICK · TAP  PARA EMPEZAR',
 
       // Leaderboard page
       'lb.title': 'Clasificación',
