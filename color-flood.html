@@ -341,7 +341,7 @@
     <div class="modal-title win" data-i18n="flood.win_title">You Win!</div>
     <p class="modal-sub" id="win-sub">Flooded the board!</p>
     <div class="modal-score" id="win-score">000000</div>
-    <input class="modal-input" id="win-name" type="text" maxlength="12" placeholder="Enter name..." autocomplete="off" spellcheck="false" data-i18n-placeholder="flood.name_placeholder" />
+    <input class="modal-input" id="win-name" type="text" maxlength="15" placeholder="Enter name..." autocomplete="off" spellcheck="false" data-i18n-placeholder="flood.name_placeholder" />
     <button class="modal-btn primary" id="win-save-btn" data-i18n="flood.save">Save Score</button>
     <button class="modal-btn secondary" id="win-new-btn" data-i18n="flood.play_again">Play Again</button>
     <p class="saving-msg" id="saving-msg"></p>
@@ -595,13 +595,14 @@ function showWin(score) {
     `${movesUsed} ${t('flood.moves')||'moves'} · ${movesLeft} ${movesWord} ${t('flood.spare')||'to spare'}`;
   document.getElementById('win-name').value = '';
   document.getElementById('saving-msg').textContent = '';
+  document.getElementById('win-save-btn').disabled = false;
   document.getElementById('win-modal').classList.add('visible');
   // Re-apply translations to update placeholder/button text
   applyTranslations();
   setTimeout(() => document.getElementById('win-name').focus(), 300);
 
   document.getElementById('win-save-btn').onclick = async () => {
-    const name = document.getElementById('win-name').value.trim();
+    const name = document.getElementById('win-name').value.trim().slice(0, 15);
     if (!name) { document.getElementById('win-name').focus(); return; }
     document.getElementById('saving-msg').textContent = t('flood.saving') || 'Saving···';
     document.getElementById('win-save-btn').disabled = true;
@@ -612,13 +613,6 @@ function showWin(score) {
       initGame();
     }, 1000);
   };
-
-  document.getElementById('win-name').addEventListener('keydown', function handler(e) {
-    if (e.key === 'Enter') {
-      document.getElementById('win-save-btn').click();
-      this.removeEventListener('keydown', handler);
-    }
-  });
 }
 
 function showLose(remaining) {
@@ -638,6 +632,7 @@ document.getElementById('new-game-btn').addEventListener('click', initGame);
 document.getElementById('lose-retry-btn').addEventListener('click', () => { closeModals(); initGame(); });
 document.getElementById('lose-menu-btn').addEventListener('click', () => { window.location.href = 'index.html'; });
 document.getElementById('win-new-btn').addEventListener('click', () => { closeModals(); initGame(); });
+document.getElementById('win-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('win-save-btn').click(); });
 
 // Difficulty
 document.querySelectorAll('.diff-btn').forEach(btn => {

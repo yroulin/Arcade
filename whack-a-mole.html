@@ -84,17 +84,15 @@
     #neo.show { display:flex; }
     .nt { font-size:14px; color:#70f0f3; text-shadow:0 0 12px #70f0f3; }
     .ns { font-size:10px; color:#d77eff; letter-spacing:2px; }
-    .nr { display:flex; gap:14px; }
-    .nc {
-      width:56px; height:68px; border:2px solid #39408c;
-      display:flex; align-items:center; justify-content:center;
-      font-size:32px; color:#676fbd; position:relative;
-    }
-    .nc.cur  { border-color:#70f0f3; color:#70f0f3; box-shadow:0 0 16px rgba(112,240,243,.4); }
-    .nc.done { border-color:#d77eff; color:#d77eff; }
-    .nc.cur::before { content:'▲'; position:absolute; top:-22px; font-size:10px; color:#70f0f3; }
-    .nc.cur::after  { content:'▼'; position:absolute; bottom:-22px; font-size:10px; color:#70f0f3; }
-    .nh { font-size:8px; color:#676fbd; letter-spacing:1px; text-align:center; line-height:2; }
+    #neo-inp { background:rgba(0,3,65,.8); border:2px solid #70f0f3; color:#70f0f3;
+      font-family:'Silkscreen',cursive; font-size:16px; letter-spacing:2px;
+      padding:10px 16px; text-align:center; outline:none; width:260px;
+      text-transform:uppercase; }
+    #neo-inp::placeholder { color:#39408c; }
+    #neo-btn { background:transparent; border:2px solid #d77eff; color:#d77eff;
+      font-family:'Silkscreen',cursive; font-size:10px; letter-spacing:2px;
+      padding:8px 28px; cursor:pointer; text-transform:uppercase; }
+    #neo-btn:hover { background:rgba(215,126,255,.15); }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; } }
   </style>
 </head>
@@ -121,14 +119,10 @@
 
 <div id="neo">
   <div class="nt">★ TOP 10 ★</div>
-  <div class="ns">ENTER YOUR INITIALS</div>
+  <div class="ns">ENTER YOUR NAME</div>
   <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
-  <div class="nr">
-    <div class="nc cur" id="nc0">A</div>
-    <div class="nc"     id="nc1">A</div>
-    <div class="nc"     id="nc2">A</div>
-  </div>
-  <div class="nh">↑/↓ CHANGE &nbsp;|&nbsp; SPACE/ENTER CONFIRM &nbsp;|&nbsp; ← BACK</div>
+  <input id="neo-inp" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="ENTER NAME...">
+  <button id="neo-btn">CONFIRM ✓</button>
 </div>
 
 <script>
@@ -163,26 +157,18 @@ function sfxHit(){ beep(880,.12,.3,'triangle'); }
 function sfxMiss(){ beep(200,.18,.2,'sawtooth'); }
 function sfxEnd(){ [392,349,294,196].forEach((f,i)=>setTimeout(()=>beep(f,.2,.2,'sawtooth'),i*130)); }
 
-let nc=['A','A','A'],ni=0;
 function neShow(){
-  nc=['A','A','A'];ni=0;neRender();
+  document.getElementById('neo-inp').value='';
   document.getElementById('ne-sc').textContent='SCORE: '+String(score).padStart(3,'0');
   document.getElementById('neo').classList.add('show');st=ST.NAME;
+  setTimeout(()=>document.getElementById('neo-inp').focus(),50);
 }
-function neRender(){
-  for(let i=0;i<3;i++){
-    const el=document.getElementById('nc'+i);
-    el.textContent=nc[i];
-    el.className='nc'+(i===ni?' cur':i<ni?' done':'');
-  }
+function neSubmit(){
+  const name=(document.getElementById('neo-inp').value.trim().slice(0,15)||'???').toUpperCase();
+  lbAdd(name,score);document.getElementById('neo').classList.remove('show');showOver();
 }
-function nePr(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===65?90:c-1);neRender();beep(660,.06,.1);}
-function neNx(){const c=nc[ni].charCodeAt(0);nc[ni]=String.fromCharCode(c===90?65:c+1);neRender();beep(880,.06,.1);}
-function neOk(){
-  if(ni<2){ni++;neRender();beep(660,.08,.14);}
-  else{lbAdd(nc.join(''),score);document.getElementById('neo').classList.remove('show');showOver();}
-}
-function neBk(){if(ni>0){ni--;neRender();beep(440,.08,.1);}}
+document.getElementById('neo-btn').addEventListener('click',neSubmit);
+document.getElementById('neo-inp').addEventListener('keydown',e=>{if(e.code==='Enter'){e.preventDefault();neSubmit();}});
 
 function startGame(){
   if(_ac)_ac.resume();
@@ -277,12 +263,7 @@ holes.forEach(h=>{
 document.getElementById('start-btn').addEventListener('click',startGame);
 document.addEventListener('keydown',e=>{
   if(_ac)_ac.resume();
-  if(st===ST.NAME){
-    if(e.code==='ArrowUp'){e.preventDefault();nePr();return;}
-    if(e.code==='ArrowDown'){e.preventDefault();neNx();return;}
-    if(e.code==='ArrowLeft'){e.preventDefault();neBk();return;}
-    if(e.code==='ArrowRight'||e.code==='Enter'||e.code==='Space'){e.preventDefault();neOk();return;}
-  }
+  if(st===ST.NAME) return;
   if(st===ST.IDLE&&(e.code==='Space'||e.code==='Enter'))startGame();
 });
 })();

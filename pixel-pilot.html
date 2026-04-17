@@ -134,6 +134,22 @@
         transition-duration: 0.01ms !important;
       }
     }
+
+    /* name entry overlay */
+    #neo { display:none; position:fixed; inset:0; background:rgba(0,3,65,.94);
+      z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+    #neo.show { display:flex; }
+    .nt { font-size:14px; color:#70f0f3; text-shadow:0 0 12px #70f0f3; letter-spacing:2px; }
+    .ns { font-size:10px; color:#d77eff; letter-spacing:2px; }
+    #neo-inp { background:rgba(0,3,65,.8); border:2px solid #70f0f3; color:#70f0f3;
+      font-family:'Silkscreen',cursive; font-size:16px; letter-spacing:2px;
+      padding:10px 16px; text-align:center; outline:none; width:260px;
+      text-transform:uppercase; }
+    #neo-inp::placeholder { color:#39408c; }
+    #neo-btn { background:transparent; border:2px solid #d77eff; color:#d77eff;
+      font-family:'Silkscreen',cursive; font-size:10px; letter-spacing:2px;
+      padding:8px 28px; cursor:pointer; text-transform:uppercase; }
+    #neo-btn:hover { background:rgba(215,126,255,.15); }
   </style>
 </head>
 <body>
@@ -163,6 +179,14 @@
     <div class="tch tch-fire" id="tc-fire" aria-label="Fire">FIRE</div>
     <div class="tch" id="tc-right" aria-label="Move right">▶</div>
   </div>
+</div>
+
+<div id="neo">
+  <div class="nt">★ TOP 10 ★</div>
+  <div class="ns">ENTER YOUR NAME</div>
+  <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
+  <input id="neo-inp" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="ENTER NAME...">
+  <button id="neo-btn">CONFIRM ✓</button>
 </div>
 
 <script>
@@ -206,32 +230,22 @@ function lbInsert(name, s) {
 }
 
 // ── Name entry state ─────────────────────────────────────────────────────────
-let nameChars  = ['A','A','A'];
-let nameCursor = 0;
-
-function prevNameChar() {
-  const c = nameChars[nameCursor].charCodeAt(0);
-  nameChars[nameCursor] = String.fromCharCode(c === 65 ? 90 : c - 1);
-  beep(660, 0.06, 'square', 0.12);
+function neShow() {
+  document.getElementById('neo-inp').value = '';
+  document.getElementById('ne-sc').textContent = 'SCORE: ' + score.toString().padStart(5,'0');
+  document.getElementById('neo').classList.add('show');
+  st = ST.NAME_ENTRY;
+  setTimeout(() => document.getElementById('neo-inp').focus(), 50);
 }
-function nextNameChar() {
-  const c = nameChars[nameCursor].charCodeAt(0);
-  nameChars[nameCursor] = String.fromCharCode(c === 90 ? 65 : c + 1);
-  beep(880, 0.06, 'square', 0.12);
+function neSubmit() {
+  const name = (document.getElementById('neo-inp').value.trim().slice(0,15) || '???').toUpperCase();
+  lbInsert(name, score);
+  document.getElementById('neo').classList.remove('show');
+  st = ST.GAME_OVER;
+  sfxGameOver();
 }
-function advanceName() {
-  if (nameCursor < 2) {
-    nameCursor++;
-    beep(660, 0.08, 'triangle', 0.15);
-  } else {
-    lbInsert(nameChars.join(''), score);
-    st = ST.GAME_OVER;
-    sfxGameOver();
-  }
-}
-function backName() {
-  if (nameCursor > 0) { nameCursor--; beep(440, 0.08, 'square', 0.1); }
-}
+document.getElementById('neo-btn').addEventListener('click', neSubmit);
+document.getElementById('neo-inp').addEventListener('keydown', e => { if (e.code === 'Enter') { e.preventDefault(); neSubmit(); } });
 
 // ── Web Audio (arcade beeps) ─────────────────────────────────────────────────
 let _ac = null;
@@ -276,14 +290,7 @@ const keys = {};
 document.addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Space' || e.code === 'ArrowLeft' || e.code === 'ArrowRight') e.preventDefault();
-  if (st === ST.NAME_ENTRY && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
-
-  if (st === ST.NAME_ENTRY) {
-    if (e.code === 'ArrowUp')   { prevNameChar(); return; }
-    if (e.code === 'ArrowDown') { nextNameChar(); return; }
-    if (e.code === 'ArrowLeft') { backName(); return; }
-    if (e.code === 'ArrowRight' || e.code === 'Enter' || e.code === 'Space') { advanceName(); return; }
-  }
+  if (st === ST.NAME_ENTRY) return;
 
   if (e.code === 'KeyP') {
     if (st === ST.PLAYING) st = ST.PAUSED;
@@ -302,12 +309,7 @@ function bindTch(el, key) {
     e.preventDefault(); T[key] = true; el.classList.add('on');
     if (key === 'fire') T.fireEdge = true;
     if (_ac) _ac.resume();
-    // name entry touch controls
-    if (st === ST.NAME_ENTRY) {
-      if (key === 'left')  { prevNameChar(); return; }
-      if (key === 'right') { nextNameChar(); return; }
-      if (key === 'fire')  { advanceName(); return; }
-    }
+    if (st === ST.NAME_ENTRY) return;
     // state transitions on fire tap
     if (st === ST.TITLE)      startGame();
     if (st === ST.GAME_OVER)  st = ST.TITLE;
@@ -583,9 +585,7 @@ function doGameOver() {
   if (score > hiScore) { hiScore = score; localStorage.setItem('pp_hi', hiScore); }
   updateHUD();
   if (lbIsTop(score)) {
-    nameChars  = ['A','A','A'];
-    nameCursor = 0;
-    st = ST.NAME_ENTRY;
+    neShow();
   } else {
     st = ST.GAME_OVER;
     sfxGameOver();
@@ -641,7 +641,7 @@ function draw() {
   if (st === ST.PAUSED)      { drawField(); drawOverlay('PAUSED', '#70f0f3', 'PRESS P TO RESUME'); return; }
   if (st === ST.LEVEL_CLEAR) { drawField(); drawLevelClear(now); return; }
   if (st === ST.GAME_OVER)   { drawField(); drawGameOver(now); return; }
-  if (st === ST.NAME_ENTRY)  { drawField(); drawNameEntry(now); return; }
+  if (st === ST.NAME_ENTRY)  { drawField(); return; }
 
   drawField();
 }
@@ -1017,80 +1017,6 @@ function drawGameOver(t) {
     ctx.font = '9px Silkscreen';
     ctx.fillText('PRESS SPACE / FIRE TO RETRY', W / 2, H / 2 + 66);
   }
-  ctx.restore();
-}
-
-function drawNameEntry(t) {
-  ctx.fillStyle = 'rgba(0,3,65,0.88)';
-  ctx.fillRect(0, 0, W, H);
-
-  // CRT scanlines
-  for (let y = 0; y < H; y += 4) { ctx.fillStyle = 'rgba(0,0,0,0.06)'; ctx.fillRect(0, y, W, 2); }
-
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-
-  ctx.save();
-  ctx.shadowBlur = 20; ctx.shadowColor = '#70f0f3';
-  ctx.fillStyle = '#70f0f3'; ctx.font = '14px Silkscreen';
-  ctx.fillText('★ TOP 10 ★', W/2, H/2 - 108);
-  ctx.restore();
-
-  ctx.save();
-  ctx.shadowBlur = 10; ctx.shadowColor = '#d77eff';
-  ctx.fillStyle = '#d77eff'; ctx.font = '11px Silkscreen';
-  ctx.fillText('ENTER YOUR INITIALS', W/2, H/2 - 76);
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
-  ctx.fillText('SCORE: ' + score.toString().padStart(5,'0'), W/2, H/2 - 54);
-  ctx.restore();
-
-  // Letter boxes
-  const boxW = 52, boxH = 64, gap = 18;
-  const totalW = 3*boxW + 2*gap;
-  const ox = W/2 - totalW/2;
-  const oy = H/2 - 28;
-
-  for (let i = 0; i < 3; i++) {
-    const bx = ox + i*(boxW+gap);
-    const isActive = i === nameCursor;
-    const pulse = isActive ? (0.6 + 0.4*Math.sin(t*4)) : 0;
-
-    ctx.save();
-    ctx.lineWidth = 2;
-    if (isActive) { ctx.shadowBlur = 20*pulse; ctx.shadowColor = '#70f0f3'; ctx.strokeStyle = '#70f0f3'; }
-    else if (i < nameCursor) { ctx.shadowBlur = 6; ctx.shadowColor = '#d77eff'; ctx.strokeStyle = '#d77eff'; }
-    else { ctx.strokeStyle = '#39408c'; }
-    ctx.strokeRect(bx, oy, boxW, boxH);
-    ctx.restore();
-
-    ctx.save();
-    if (isActive) { ctx.shadowBlur = 14; ctx.shadowColor = '#70f0f3'; ctx.fillStyle = '#70f0f3'; }
-    else if (i < nameCursor) { ctx.fillStyle = '#d77eff'; }
-    else { ctx.fillStyle = '#676fbd'; }
-    ctx.font = '30px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(nameChars[i], bx+boxW/2, oy+boxH/2);
-    ctx.restore();
-
-    if (isActive) {
-      ctx.save();
-      ctx.fillStyle = '#70f0f3'; ctx.shadowBlur = 8; ctx.shadowColor = '#70f0f3';
-      ctx.font = '10px Silkscreen'; ctx.textAlign = 'center';
-      ctx.fillText('▲', bx+boxW/2, oy-14);
-      ctx.fillText('▼', bx+boxW/2, oy+boxH+14);
-      ctx.restore();
-    }
-  }
-
-  ctx.save();
-  ctx.fillStyle = '#676fbd'; ctx.font = '8px Silkscreen'; ctx.textAlign = 'center';
-  ctx.fillText('↑/↓ CHANGE    SPACE/ENTER CONFIRM    ← BACK', W/2, H/2 + 70);
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = '#39408c'; ctx.font = '7px Silkscreen'; ctx.textAlign = 'center';
-  ctx.fillText('TOUCH: ◀/▶ CHANGE    FIRE CONFIRM', W/2, H/2 + 88);
   ctx.restore();
 }
 

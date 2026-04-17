@@ -371,6 +371,7 @@ const GAMES = [
   { key: 'whack-a-mole', label: 'Whack-a-Mole',  color: '#ffd84d', accentClass: 'yellow' },
   { key: 'memory-match', label: 'Memory Match',   color: '#b8a0fb', accentClass: 'violet' },
   { key: 'color-flood',  label: 'Color Flood',    color: '#ff6e84', accentClass: 'red'    },
+  { key: 'neon-surge',   label: 'Neon Surge',     color: '#ffd84d', accentClass: 'yellow' },
 ];
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -481,7 +482,7 @@ function renderGameTable(rows) {
         </td>
         <td><span class="num-cell" style="color:#9da5f7">${avgScore ? String(avgScore).padStart(4,'0') : '—'}</span></td>
         <td><span class="num-cell" style="color:${esc(g.color)}">${bestScore ? String(bestScore).padStart(bestScore>999?6:4,'0') : '—'}</span></td>
-        <td><span class="champion-cell">${esc(champion.slice(0,12))}</span></td>
+        <td><span class="champion-cell">${esc(champion.slice(0,15))}</span></td>
       </tr>`;
   }).join('');
 
@@ -522,7 +523,7 @@ function renderHOF(rows) {
   hofGrid.innerHTML = ranked.map((p, i) => `
     <div class="hof-card rank-${i+1}">
       <span class="hof-medal">${MEDALS[i]}</span>
-      <div class="hof-name">${esc(p.name.slice(0,12))}</div>
+      <div class="hof-name">${esc(p.name.slice(0,15))}</div>
       <div class="hof-score">${p.total.toLocaleString()}</div>
       <div class="hof-games-badge">${p.gameCount} ${p.gameCount===1 ? t('stats.game') : t('stats.games')} · ${t('stats.combined')}</div>
     </div>`

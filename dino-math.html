@@ -87,6 +87,22 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
+
+    /* name entry overlay */
+    #neo { display:none; position:fixed; inset:0; background:rgba(0,2,0,.94);
+      z-index:200; flex-direction:column; align-items:center; justify-content:center; gap:18px; }
+    #neo.show { display:flex; }
+    .nt { font-size:14px; color:#4dff91; text-shadow:0 0 12px #4dff91; letter-spacing:2px; }
+    .ns { font-size:10px; color:#ffd84d; letter-spacing:2px; }
+    #neo-inp { background:rgba(0,2,0,.8); border:2px solid #4dff91; color:#4dff91;
+      font-family:'Silkscreen',cursive; font-size:16px; letter-spacing:2px;
+      padding:10px 16px; text-align:center; outline:none; width:260px;
+      text-transform:uppercase; }
+    #neo-inp::placeholder { color:#1a3320; }
+    #neo-btn { background:transparent; border:2px solid #ffd84d; color:#ffd84d;
+      font-family:'Silkscreen',cursive; font-size:10px; letter-spacing:2px;
+      padding:8px 28px; cursor:pointer; text-transform:uppercase; }
+    #neo-btn:hover { background:rgba(255,216,77,.12); }
   </style>
 </head>
 <body>
@@ -99,6 +115,14 @@
     <div class="tch tch-jump" id="tc-jump" aria-label="Jump">▲ JUMP</div>
     <div class="tch" id="tc-right" aria-label="Move right">▶</div>
   </div>
+</div>
+
+<div id="neo">
+  <div class="nt">★ TOP 10 ★</div>
+  <div class="ns">ENTER YOUR NAME</div>
+  <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
+  <input id="neo-inp" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="ENTER NAME...">
+  <button id="neo-btn">CONFIRM ✓</button>
 </div>
 
 <script>
@@ -197,38 +221,29 @@ function lbInsert(name, s) {
 }
 
 // ── Name entry state ─────────────────────────────────────────────────────────
-let nameChars     = ['A','A','A'];
-let nameCursor    = 0;
 let nameEntryNext = ST.GAME_OVER; // state to go to after name saved
 
-function prevNameChar() {
-  const c = nameChars[nameCursor].charCodeAt(0);
-  nameChars[nameCursor] = String.fromCharCode(c === 65 ? 90 : c - 1);
-  beep(660, 0.06, 'square', 0.12);
+function neShow(nextState) {
+  nameEntryNext = nextState;
+  document.getElementById('neo-inp').value = '';
+  document.getElementById('ne-sc').textContent = 'SCORE: ' + score.toString().padStart(6,'0');
+  document.getElementById('neo').classList.add('show');
+  st = ST.NAME_ENTRY;
+  setTimeout(() => document.getElementById('neo-inp').focus(), 50);
 }
-function nextNameChar() {
-  const c = nameChars[nameCursor].charCodeAt(0);
-  nameChars[nameCursor] = String.fromCharCode(c === 90 ? 65 : c + 1);
-  beep(880, 0.06, 'square', 0.12);
+function neSubmit() {
+  const name = (document.getElementById('neo-inp').value.trim().slice(0,15) || '???').toUpperCase();
+  lbInsert(name, score);
+  document.getElementById('neo').classList.remove('show');
+  st = nameEntryNext;
 }
-function advanceName() {
-  if (nameCursor < 2) {
-    nameCursor++;
-    beep(660, 0.08, 'triangle', 0.15);
-  } else {
-    lbInsert(nameChars.join(''), score);
-    st = nameEntryNext;
-  }
-}
-function backName() {
-  if (nameCursor > 0) { nameCursor--; beep(440, 0.08, 'square', 0.1); }
-}
+document.getElementById('neo-btn').addEventListener('click', neSubmit);
+document.getElementById('neo-inp').addEventListener('keydown', e => { if (e.code === 'Enter') { e.preventDefault(); neSubmit(); } });
 
 function doGameOver() {
   if (score > hiScore) { hiScore = score; localStorage.setItem('dh_hi', hiScore); }
   if (lbIsTop(score)) {
-    nameChars = ['A','A','A']; nameCursor = 0; nameEntryNext = ST.GAME_OVER;
-    st = ST.NAME_ENTRY;
+    neShow(ST.GAME_OVER);
   } else {
     st = ST.GAME_OVER;
   }
@@ -236,8 +251,7 @@ function doGameOver() {
 function doWin() {
   if (score > hiScore) { hiScore = score; localStorage.setItem('dh_hi', hiScore); }
   if (lbIsTop(score)) {
-    nameChars = ['A','A','A']; nameCursor = 0; nameEntryNext = ST.WIN;
-    st = ST.NAME_ENTRY;
+    neShow(ST.WIN);
   } else {
     st = ST.WIN;
   }
@@ -317,13 +331,7 @@ document.addEventListener('keydown', e => {
   unlockAudio();
   if (['Space','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code)) e.preventDefault();
 
-  if (st === ST.NAME_ENTRY) {
-    if (e.code === 'ArrowUp')   { prevNameChar(); return; }
-    if (e.code === 'ArrowDown') { nextNameChar(); return; }
-    if (e.code === 'ArrowLeft') { backName(); return; }
-    if (e.code === 'ArrowRight' || e.code === 'Enter' || e.code === 'Space') { advanceName(); return; }
-    return;
-  }
+  if (st === ST.NAME_ENTRY) return;
 
   if (st === ST.TITLE && (e.code==='Space'||e.code==='Enter')) startGame();
   if (st === ST.GAME_OVER && (e.code==='Space'||e.code==='Enter')) { st=ST.TITLE; }
@@ -346,11 +354,7 @@ function bindTch(id, key) {
   const el = document.getElementById(id);
   el.addEventListener('touchstart', e => {
     e.preventDefault(); T[key]=true; el.classList.add('on'); unlockAudio();
-    if (st === ST.NAME_ENTRY) {
-      if (key === 'left')  { prevNameChar(); return; }
-      if (key === 'right') { nextNameChar(); return; }
-      if (key === 'jump')  { advanceName(); return; }
-    }
+    if (st === ST.NAME_ENTRY) return;
     if (st===ST.TITLE) startGame();
     if (st===ST.GAME_OVER) st=ST.TITLE;
     if (st===ST.WIN) st=ST.TITLE;
@@ -904,7 +908,7 @@ function draw() {
   if (st === ST.LEVEL_CLEAR) drawLevelClear(lv, now);
   if (st === ST.GAME_OVER)   drawGameOver(now);
   if (st === ST.WIN)         drawWin(now);
-  if (st === ST.NAME_ENTRY)  drawNameEntry(now);
+  // NAME_ENTRY: HTML overlay handles display
 }
 
 // ── Dinosaur drawing ──────────────────────────────────────────────────────────
@@ -1331,77 +1335,6 @@ function drawWin(now) {
     ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
     ctx.fillText('PRESS SPACE TO PLAY AGAIN', CW/2, CH - 30);
   }
-  ctx.restore();
-}
-
-function drawNameEntry(t) {
-  ctx.fillStyle = 'rgba(0,2,0,0.88)';
-  ctx.fillRect(0, 0, CW, CH);
-
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-
-  ctx.save();
-  ctx.shadowBlur = 20; ctx.shadowColor = '#4dff91';
-  ctx.fillStyle = '#4dff91'; ctx.font = '14px Silkscreen';
-  ctx.fillText('★ TOP 10 ★', CW/2, CH/2 - 100);
-  ctx.restore();
-
-  ctx.save();
-  ctx.shadowBlur = 10; ctx.shadowColor = '#ffd84d';
-  ctx.fillStyle = '#ffd84d'; ctx.font = '11px Silkscreen';
-  ctx.fillText('ENTER YOUR INITIALS', CW/2, CH/2 - 70);
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = '#9da5f7'; ctx.font = '9px Silkscreen';
-  ctx.fillText('SCORE: ' + score.toString().padStart(6,'0'), CW/2, CH/2 - 50);
-  ctx.restore();
-
-  // Letter boxes
-  const boxW = 52, boxH = 64, gap = 18;
-  const totalW = 3*boxW + 2*gap;
-  const ox = CW/2 - totalW/2;
-  const oy = CH/2 - 22;
-
-  for (let i = 0; i < 3; i++) {
-    const bx = ox + i*(boxW+gap);
-    const isActive = i === nameCursor;
-    const pulse = isActive ? (0.6 + 0.4*Math.sin(t*4)) : 0;
-
-    ctx.save();
-    ctx.lineWidth = 2;
-    if (isActive) { ctx.shadowBlur = 20*pulse; ctx.shadowColor = '#4dff91'; ctx.strokeStyle = '#4dff91'; }
-    else if (i < nameCursor) { ctx.shadowBlur = 6; ctx.shadowColor = '#ffd84d'; ctx.strokeStyle = '#ffd84d'; }
-    else { ctx.strokeStyle = '#39408c'; }
-    ctx.strokeRect(bx, oy, boxW, boxH);
-    ctx.restore();
-
-    ctx.save();
-    if (isActive) { ctx.shadowBlur = 14; ctx.shadowColor = '#4dff91'; ctx.fillStyle = '#4dff91'; }
-    else if (i < nameCursor) { ctx.fillStyle = '#ffd84d'; }
-    else { ctx.fillStyle = '#676fbd'; }
-    ctx.font = '30px Silkscreen'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(nameChars[i], bx+boxW/2, oy+boxH/2);
-    ctx.restore();
-
-    if (isActive) {
-      ctx.save();
-      ctx.fillStyle = '#4dff91'; ctx.shadowBlur = 8; ctx.shadowColor = '#4dff91';
-      ctx.font = '10px Silkscreen'; ctx.textAlign = 'center';
-      ctx.fillText('▲', bx+boxW/2, oy-14);
-      ctx.fillText('▼', bx+boxW/2, oy+boxH+14);
-      ctx.restore();
-    }
-  }
-
-  ctx.save();
-  ctx.fillStyle = '#676fbd'; ctx.font = '8px Silkscreen'; ctx.textAlign = 'center';
-  ctx.fillText('↑/↓ CHANGE    SPACE/ENTER CONFIRM    ← BACK', CW/2, CH/2 + 68);
-  ctx.restore();
-
-  ctx.save();
-  ctx.fillStyle = '#39408c'; ctx.font = '7px Silkscreen'; ctx.textAlign = 'center';
-  ctx.fillText('TOUCH: ◀/▶ CHANGE    JUMP CONFIRM', CW/2, CH/2 + 84);
   ctx.restore();
 }
 

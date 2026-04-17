@@ -154,6 +154,7 @@
     .score.purple { color: #d77eff; }
     .score.yellow { color: #ffd84d; }
     .score.violet { color: #b8a0fb; }
+    .score.red    { color: #ff6e84; }
 
     /* Date cell */
     .date { font-size: 11px; color: #676fbd; text-align: right; }
@@ -266,6 +267,24 @@
       <div id="mem-board"></div>
     </section>
 
+    <!-- Color Flood -->
+    <section class="game-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#ff6e84" style="filter:drop-shadow(0 0 4px #ff6e84)"/></svg>
+        <span class="game-title" style="color:#ff6e84;text-shadow:0 0 8px #ff6e84">Color Flood</span>
+      </div>
+      <div id="cf-board"></div>
+    </section>
+
+    <!-- Neon Surge -->
+    <section class="game-section">
+      <div class="game-header">
+        <svg class="game-dot" viewBox="0 0 10 10" fill="none"><rect width="10" height="10" fill="#ffd84d" style="filter:drop-shadow(0 0 4px #ffd84d)"/></svg>
+        <span class="game-title" style="color:#ffd84d;text-shadow:0 0 8px #ffd84d">Neon Surge</span>
+      </div>
+      <div id="ns-board"></div>
+    </section>
+
   </div>
 </main>
 
@@ -343,6 +362,8 @@ const BOARDS = [
   { id: 'simon-board', game: 'simon',        accent: 'purple' },
   { id: 'wam-board',   game: 'whack-a-mole', accent: 'yellow' },
   { id: 'mem-board',   game: 'memory-match', accent: 'violet' },
+  { id: 'cf-board',    game: 'color-flood',  accent: 'red'    },
+  { id: 'ns-board',    game: 'neon-surge',   accent: 'yellow' },
 ];
 
 async function renderAll() {
