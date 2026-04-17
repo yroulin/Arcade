@@ -258,8 +258,8 @@
     <div class="modal-title lose" data-i18n="gd.game_over">Game Over</div>
     <p class="modal-sub" id="death-sub">Nice try!</p>
     <div class="modal-score" id="death-score">000000</div>
-    <input class="modal-input" id="death-name" type="text" maxlength="15"
-      placeholder="Enter name..." autocomplete="off" spellcheck="false"
+    <input class="modal-input" id="death-name" type="text" maxlength="3"
+      placeholder="AAA" autocomplete="off" spellcheck="false"
       data-i18n-placeholder="gd.name_placeholder"
       style="text-transform:uppercase;letter-spacing:4px;text-align:center;" />
     <button class="modal-btn primary" id="death-save-btn" data-i18n="gd.save">Save Score</button>
@@ -627,8 +627,8 @@ function showDeathModal() {
   setTimeout(() => document.getElementById('death-name').focus(), 300);
 
   document.getElementById('death-save-btn').onclick = async () => {
-    const raw  = document.getElementById('death-name').value.trim().toUpperCase();
-    const name = raw.slice(0, 15);
+    const raw  = document.getElementById('death-name').value.trim().toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+    const name = (raw || 'AAA').padEnd(3, 'A');
     if (!name) { document.getElementById('death-name').focus(); return; }
     document.getElementById('saving-msg').textContent = t('gd.saving') || 'Saving···';
     document.getElementById('death-save-btn').disabled = true;
@@ -1142,9 +1142,8 @@ canvas.addEventListener('pointerdown', e => {
   handleInput();
 });
 
-// Auto-uppercase 3-char name input
 document.getElementById('death-name').addEventListener('input', function() {
-  this.value = this.value.toUpperCase().replace(/[^A-Z0-9 ]/g, '').slice(0, 15);
+  this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
 });
 
 // ── Boot ──────────────────────────────────────────────────────────────────

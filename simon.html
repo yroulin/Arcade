@@ -99,7 +99,7 @@
   <div class="nt">★ TOP 10 ★</div>
   <div class="ns">ENTER YOUR NAME</div>
   <div style="font-size:9px;color:#9da5f7;letter-spacing:2px" id="ne-sc"></div>
-  <input id="neo-inp" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="ENTER NAME...">
+  <input id="neo-inp" type="text" maxlength="3" autocomplete="off" spellcheck="false" placeholder="AAA">
   <button id="neo-btn">CONFIRM ✓</button>
 </div>
 
@@ -146,11 +146,12 @@ function neShow(){
   setTimeout(()=>document.getElementById('neo-inp').focus(),50);
 }
 function neSubmit(){
-  const name=(document.getElementById('neo-inp').value.trim().slice(0,15)||'???').toUpperCase();
+  const name=(document.getElementById('neo-inp').value.trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,3)||'AAA').padEnd(3,'A');
   lbAdd(name,level);document.getElementById('neo').classList.remove('show');showOver();
 }
 document.getElementById('neo-btn').addEventListener('click',neSubmit);
 document.getElementById('neo-inp').addEventListener('keydown',e=>{if(e.code==='Enter'){e.preventDefault();neSubmit();}});
+document.getElementById('neo-inp').addEventListener('input',function(){this.value=this.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,3);});
 
 const COLS=['red','blue','green','yellow'];
 const btns=document.querySelectorAll('.sbt');
