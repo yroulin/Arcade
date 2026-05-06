@@ -7,7 +7,8 @@
       "mcp__claude_ai_Supabase__execute_sql",
       "Bash(rtk ls *)",
       "Bash(rtk grep *)",
-      "Bash(rtk wc *)"
+      "Bash(rtk wc *)",
+      "Bash(node -e ' *)"
     ]
   }
 }
