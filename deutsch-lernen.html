@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Deutsch Lernen – Nico's Arcade Room</title>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000341;
+      color: #e3e3ff;
+      font-family: 'Nunito', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-image:
+        linear-gradient(to right, rgba(112,240,243,.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(112,240,243,.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      user-select: none;
+      overflow-x: hidden;
+    }
+
+    #back-btn {
+      position: fixed; top: 14px; left: 14px;
+      background: rgba(0,3,65,.85);
+      border: 1px solid rgba(112,240,243,.3);
+      color: #70f0f3;
+      font-family: 'Silkscreen', cursive;
+      font-size: 9px;
+      padding: 7px 12px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      text-decoration: none;
+      z-index: 50;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    #back-btn:hover { border-color: #70f0f3; box-shadow: 0 0 10px rgba(112,240,243,.35); }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 600px;
+      padding: 70px 20px 50px;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100dvh;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Start Screen ── */
+    .flag { font-size: 64px; margin-bottom: 12px; animation: pop-in .4s ease; }
+
+    .game-title {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(20px, 5vw, 34px);
+      color: #ffd84d;
+      text-shadow: 0 0 20px #ffd84d, 0 0 40px #ffd84d66;
+      text-align: center;
+      margin-bottom: 4px;
+      letter-spacing: 2px;
+    }
+
+    .game-subtitle {
+      font-size: 15px;
+      color: #9da5f7;
+      margin-bottom: 32px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .section-label {
+      font-family: 'Silkscreen', cursive;
+      font-size: 10px;
+      color: #9da5f7;
+      letter-spacing: 3px;
+      margin-bottom: 14px;
+      align-self: flex-start;
+    }
+
+    .diff-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 28px;
+    }
+
+    .diff-btn {
+      padding: 16px 20px;
+      border: 2px solid;
+      border-radius: 14px;
+      cursor: pointer;
+      background: rgba(0,3,65,.6);
+      text-align: left;
+      transition: all .2s;
+      position: relative;
+    }
+    .diff-btn.selected::after {
+      content: '✓';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      font-weight: 900;
+    }
+    .diff-btn:hover { transform: scale(1.02); }
+
+    .diff-btn .diff-name { font-size: 18px; font-weight: 900; display: block; margin-bottom: 3px; }
+    .diff-btn .diff-desc { font-size: 12px; opacity: .7; font-weight: 700; }
+
+    .diff-easy  { border-color: #4dff91; }
+    .diff-easy  .diff-name { color: #4dff91; }
+    .diff-easy.selected::after { color: #4dff91; }
+    .diff-normal { border-color: #ffd84d; }
+    .diff-normal .diff-name { color: #ffd84d; }
+    .diff-normal.selected::after { color: #ffd84d; }
+    .diff-hard  { border-color: #ff6e84; }
+    .diff-hard  .diff-name { color: #ff6e84; }
+    .diff-hard.selected::after { color: #ff6e84; }
+
+    .btn-play {
+      padding: 16px 52px;
+      background: #ffd84d;
+      color: #000;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Silkscreen', cursive;
+      font-size: 15px;
+      cursor: pointer;
+      letter-spacing: 2px;
+      transition: all .2s;
+      box-shadow: 0 0 24px rgba(255,216,77,.35);
+      font-weight: 900;
+    }
+    .btn-play:hover { transform: scale(1.06); box-shadow: 0 0 36px rgba(255,216,77,.6); }
+
+    /* ── Phase Map ── */
+    .phases-heading {
+      font-family: 'Silkscreen', cursive;
+      font-size: 13px;
+      color: #ffd84d;
+      letter-spacing: 3px;
+      margin-bottom: 6px;
+    }
+
+    .diff-badge {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9da5f7;
+      margin-bottom: 22px;
+    }
+
+    .phase-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    .phase-card {
+      padding: 18px 12px;
+      border: 2px solid;
+      border-radius: 14px;
+      cursor: pointer;
+      background: rgba(0,3,65,.65);
+      text-align: center;
+      transition: all .2s;
+      position: relative;
+    }
+    .phase-card:not(.locked):hover { transform: scale(1.04); }
+    .phase-card.locked { opacity: .38; cursor: not-allowed; }
+    .phase-card.completed { background: rgba(255,255,255,.05); }
+
+    .phase-emoji { font-size: 34px; display: block; margin-bottom: 6px; }
+    .phase-name  { font-size: 15px; font-weight: 900; display: block; margin-bottom: 6px; }
+    .phase-stars { font-size: 18px; letter-spacing: 1px; }
+
+    .total-row {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffd84d;
+      margin-bottom: 14px;
+    }
+
+    .btn-secondary {
+      padding: 11px 24px;
+      border: 2px solid rgba(255,255,255,.18);
+      border-radius: 10px;
+      background: transparent;
+      color: #9da5f7;
+      font-family: 'Silkscreen', cursive;
+      font-size: 10px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .2s;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,.4); color: #e3e3ff; }
+
+    /* ── Game Screen ── */
+    .game-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .game-top-emoji { font-size: 32px; }
+    .game-top-name {
+      font-family: 'Silkscreen', cursive;
+      font-size: 16px;
+      letter-spacing: 1px;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,.08);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width .35s ease;
+      width: 0%;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 18px;
+    }
+
+    .hud-item {
+      font-family: 'Silkscreen', cursive;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+    .hud-label { color: #9da5f7; display: block; margin-bottom: 2px; }
+    .hud-value { font-size: 18px; }
+
+    .timer-val { color: #4dff91; }
+    .timer-val.warn { color: #ff6e84; animation: blink .5s infinite alternate; }
+    @keyframes blink { to { opacity: .35; } }
+
+    .match-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .col-head {
+      font-family: 'Silkscreen', cursive;
+      font-size: 8px;
+      letter-spacing: 2px;
+      color: #9da5f7;
+      text-align: center;
+      padding: 4px 0 8px;
+    }
+
+    .match-col { display: flex; flex-direction: column; gap: 7px; }
+
+    .word-btn {
+      padding: 13px 8px;
+      border: 2px solid rgba(255,255,255,.18);
+      border-radius: 11px;
+      background: rgba(0,3,65,.75);
+      color: #e3e3ff;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: border-color .12s, background .12s, transform .1s;
+      text-align: center;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.2;
+      width: 100%;
+      animation: pop-in .18s ease;
+    }
+    .word-btn:hover:not([disabled]) { border-color: rgba(255,255,255,.45); transform: scale(1.03); }
+    .word-btn.sel  { border-color: #ffd84d; box-shadow: 0 0 12px rgba(255,216,77,.45); background: rgba(255,216,77,.1); color: #ffd84d; }
+    .word-btn.ok   { border-color: #4dff91; background: rgba(77,255,145,.12); color: #4dff91; pointer-events: none; }
+    .word-btn.bad  { border-color: #ff6e84; background: rgba(255,110,132,.1); color: #ff6e84; animation: shake .3s; }
+    .word-btn.gone { opacity: 0; pointer-events: none; transition: opacity .35s; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-7px); }
+      75%      { transform: translateX(7px); }
+    }
+
+    /* ── Result Screen ── */
+    .result-emoji { font-size: 52px; margin-bottom: 10px; }
+    .result-title {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(18px, 4vw, 26px);
+      margin-bottom: 6px;
+    }
+    .result-stars { font-size: 52px; margin: 12px 0; animation: pop-in .4s ease; }
+    .result-sub { font-size: 14px; color: #9da5f7; font-weight: 700; margin-bottom: 28px; }
+
+    .result-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
+
+    .btn-next {
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Silkscreen', cursive;
+      font-size: 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .2s;
+      background: #ffd84d;
+      color: #000;
+    }
+    .btn-next:hover { transform: scale(1.04); box-shadow: 0 0 20px rgba(255,216,77,.5); }
+
+    .btn-retry {
+      padding: 13px;
+      border: 2px solid #ff6e84;
+      border-radius: 12px;
+      background: rgba(255,110,132,.1);
+      color: #ff6e84;
+      font-family: 'Silkscreen', cursive;
+      font-size: 11px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all .2s;
+    }
+    .btn-retry:hover { background: rgba(255,110,132,.2); }
+
+    /* ── Win Screen ── */
+    .win-trophy { font-size: 90px; animation: pop-in .5s ease; margin-bottom: 12px; }
+    .win-title {
+      font-family: 'Silkscreen', cursive;
+      font-size: clamp(18px, 4vw, 28px);
+      color: #ffd84d;
+      text-shadow: 0 0 20px #ffd84d;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .win-sub { font-size: 15px; color: #9da5f7; font-weight: 700; margin-bottom: 4px; text-align: center; }
+    .win-stars {
+      font-family: 'Silkscreen', cursive;
+      font-size: 22px;
+      color: #ffd84d;
+      text-shadow: 0 0 14px #ffd84d;
+      margin: 18px 0 28px;
+    }
+    .win-btns { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 280px; }
+
+    /* ── Confetti ── */
+    .confetti-piece {
+      position: fixed;
+      border-radius: 3px;
+      animation: fall linear forwards;
+      pointer-events: none;
+      z-index: 200;
+    }
+    @keyframes fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+    }
+
+    @keyframes pop-in {
+      from { transform: scale(.75); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    @media (max-width: 360px) {
+      .word-btn { font-size: 12px; padding: 10px 6px; min-height: 46px; }
+    }
+  </style>
+</head>
+<body>
+
+<a id="back-btn" href="index.html">← ARCADE</a>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 1 · Inicio / Dificultad
+═══════════════════════════════════════════════ -->
+<div id="s-start" class="screen active">
+  <div class="flag">🇩🇪</div>
+  <h1 class="game-title">DEUTSCH LERNEN</h1>
+  <p class="game-subtitle">¡Une las palabras en español y alemán!</p>
+
+  <p class="section-label">ELIGE DIFICULTAD</p>
+
+  <div class="diff-grid">
+    <button class="diff-btn diff-easy selected" onclick="selDiff('easy', this)">
+      <span class="diff-name">🟢 Fácil</span>
+      <span class="diff-desc">Sin tiempo · Emojis de ayuda · 4 pares a la vez</span>
+    </button>
+    <button class="diff-btn diff-normal" onclick="selDiff('normal', this)">
+      <span class="diff-name">🟡 Normal</span>
+      <span class="diff-desc">90 segundos · 5 pares a la vez</span>
+    </button>
+    <button class="diff-btn diff-hard" onclick="selDiff('hard', this)">
+      <span class="diff-name">🔴 Difícil</span>
+      <span class="diff-desc">60 segundos · Sin emojis · 5 pares a la vez</span>
+    </button>
+  </div>
+
+  <button class="btn-play" onclick="goPhases()">▶ JUGAR</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 2 · Mapa de Fases
+═══════════════════════════════════════════════ -->
+<div id="s-phases" class="screen">
+  <p class="phases-heading">ELIGE UNA FASE</p>
+  <p class="diff-badge" id="diff-badge"></p>
+
+  <div class="phase-grid" id="phase-grid"></div>
+
+  <div class="total-row" id="total-row">⭐ 0 / 18 estrellas</div>
+  <button class="btn-secondary" onclick="show('s-start')">← CAMBIAR DIFICULTAD</button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 3 · Juego
+═══════════════════════════════════════════════ -->
+<div id="s-game" class="screen">
+  <div class="game-top">
+    <span class="game-top-emoji" id="g-emoji"></span>
+    <span class="game-top-name" id="g-name"></span>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-fill" id="g-progress"></div></div>
+
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">PAREJAS</span>
+      <span class="hud-value" id="g-matched" style="color:#70f0f3">0/10</span>
+    </div>
+    <div class="hud-item" id="g-timer-wrap" style="display:none; text-align:center">
+      <span class="hud-label" style="text-align:center">TIEMPO</span>
+      <span class="hud-value timer-val" id="g-timer">90</span>
+    </div>
+    <div class="hud-item" style="text-align:right">
+      <span class="hud-label">ERRORES</span>
+      <span class="hud-value" id="g-errors" style="color:#ff6e84">0</span>
+    </div>
+  </div>
+
+  <div class="match-area">
+    <div class="match-col" id="col-es">
+      <div class="col-head">🇪🇸 ESPAÑOL</div>
+    </div>
+    <div class="match-col" id="col-de">
+      <div class="col-head">🇩🇪 DEUTSCH</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 4 · Resultado de fase
+═══════════════════════════════════════════════ -->
+<div id="s-result" class="screen" style="justify-content:center; text-align:center;">
+  <div class="result-emoji" id="r-emoji"></div>
+  <div class="result-title" id="r-title"></div>
+  <div class="result-stars" id="r-stars"></div>
+  <div class="result-sub" id="r-sub"></div>
+  <div class="result-btns">
+    <button class="btn-next" id="r-next" onclick="nextPhase()">SIGUIENTE FASE →</button>
+    <button class="btn-retry" onclick="retryPhase()">↺ INTENTAR DE NUEVO</button>
+    <button class="btn-secondary" onclick="show('s-phases')">← VER FASES</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 5 · Victoria total
+═══════════════════════════════════════════════ -->
+<div id="s-win" class="screen" style="justify-content:center; text-align:center;">
+  <div class="win-trophy">🏆</div>
+  <h2 class="win-title">¡FELICITACIONES!</h2>
+  <p class="win-sub">¡Completaste todos los temas!</p>
+  <p class="win-sub">🇩🇪 ¡Ya sabes hablar un poco de alemán! 🇩🇪</p>
+  <div class="win-stars" id="win-stars">⭐ 0 / 18</div>
+  <div class="win-btns">
+    <button class="btn-play" onclick="restartAll()">▶ JUGAR DE NUEVO</button>
+    <a href="index.html" style="text-decoration:none;width:100%;">
+      <button class="btn-secondary" style="width:100%;">← VOLVER AL ARCADE</button>
+    </a>
+  </div>
+</div>
+
+<script>
+// ───────────────────────────────────────────────
+// DATOS DE VOCABULARIO
+// ───────────────────────────────────────────────
+const PHASES = [
+  {
+    name: 'Colores', emoji: '🎨', color: '#ff6e84',
+    pairs: [
+      { es: 'Rojo 🔴',     de: 'Rot'     },
+      { es: 'Azul 🔵',     de: 'Blau'    },
+      { es: 'Verde 🟢',    de: 'Grün'    },
+      { es: 'Amarillo 🟡', de: 'Gelb'    },
+      { es: 'Naranja 🟠',  de: 'Orange'  },
+      { es: 'Morado 🟣',   de: 'Lila'    },
+      { es: 'Rosa 🩷',     de: 'Rosa'    },
+      { es: 'Negro ⚫',    de: 'Schwarz' },
+      { es: 'Blanco ⚪',   de: 'Weiß'   },
+      { es: 'Marrón 🟤',   de: 'Braun'   },
+    ]
+  },
+  {
+    name: 'Números', emoji: '🔢', color: '#70f0f3',
+    pairs: [
+      { es: 'Uno (1)',    de: 'Eins'   },
+      { es: 'Dos (2)',    de: 'Zwei'   },
+      { es: 'Tres (3)',   de: 'Drei'   },
+      { es: 'Cuatro (4)', de: 'Vier'   },
+      { es: 'Cinco (5)',  de: 'Fünf'   },
+      { es: 'Seis (6)',   de: 'Sechs'  },
+      { es: 'Siete (7)',  de: 'Sieben' },
+      { es: 'Ocho (8)',   de: 'Acht'   },
+      { es: 'Nueve (9)',  de: 'Neun'   },
+      { es: 'Diez (10)',  de: 'Zehn'   },
+    ]
+  },
+  {
+    name: 'Familia', emoji: '👨‍👩‍👧', color: '#d77eff',
+    pairs: [
+      { es: 'Mamá 👩',     de: 'Mama'      },
+      { es: 'Papá 👨',     de: 'Papa'      },
+      { es: 'Hermano 👦',  de: 'Bruder'    },
+      { es: 'Hermana 👧',  de: 'Schwester' },
+      { es: 'Abuelo 👴',   de: 'Opa'       },
+      { es: 'Abuela 👵',   de: 'Oma'       },
+      { es: 'Tío 🧔',      de: 'Onkel'     },
+      { es: 'Tía 👩‍🦱',    de: 'Tante'     },
+      { es: 'Primo 🧒',    de: 'Cousin'    },
+      { es: 'Bebé 👶',     de: 'Baby'      },
+    ]
+  },
+  {
+    name: 'Saludos', emoji: '👋', color: '#4dff91',
+    pairs: [
+      { es: 'Hola 👋',              de: 'Hallo'        },
+      { es: 'Adiós ✌️',            de: 'Tschüss'      },
+      { es: 'Buenos días 🌅',       de: 'Guten Morgen' },
+      { es: 'Buenas noches 🌙',     de: 'Gute Nacht'   },
+      { es: 'Por favor 🙏',         de: 'Bitte'        },
+      { es: 'Gracias 😊',           de: 'Danke'        },
+      { es: 'Perdón 😅',            de: 'Entschuldigung'},
+      { es: 'Feliz cumpleaños 🎂',  de: 'Glückwunsch!' },
+      { es: '¿Cómo estás? 🤔',      de: "Wie geht's?"  },
+      { es: '¡Muy bien! 😄',        de: 'Sehr gut!'    },
+    ]
+  },
+  {
+    name: 'Comidas', emoji: '🍎', color: '#ffd84d',
+    pairs: [
+      { es: 'Manzana 🍎', de: 'Apfel'    },
+      { es: 'Pan 🍞',      de: 'Brot'    },
+      { es: 'Leche 🥛',    de: 'Milch'   },
+      { es: 'Agua 💧',     de: 'Wasser'  },
+      { es: 'Pollo 🍗',    de: 'Hühnchen'},
+      { es: 'Queso 🧀',    de: 'Käse'    },
+      { es: 'Huevo 🥚',    de: 'Ei'      },
+      { es: 'Arroz 🍚',    de: 'Reis'    },
+      { es: 'Sopa 🍲',     de: 'Suppe'   },
+      { es: 'Pastel 🎂',   de: 'Kuchen'  },
+    ]
+  },
+  {
+    name: 'Objetos', emoji: '📚', color: '#b8a0fb',
+    pairs: [
+      { es: 'Mesa 🪑',     de: 'Tisch'     },
+      { es: 'Silla 💺',    de: 'Stuhl'     },
+      { es: 'Libro 📖',    de: 'Buch'      },
+      { es: 'Lápiz ✏️',   de: 'Bleistift' },
+      { es: 'Bolsa 👜',    de: 'Tasche'    },
+      { es: 'Casa 🏠',     de: 'Haus'      },
+      { es: 'Coche 🚗',    de: 'Auto'      },
+      { es: 'Pelota ⚽',   de: 'Ball'      },
+      { es: 'Puerta 🚪',   de: 'Tür'       },
+      { es: 'Ventana 🪟',  de: 'Fenster'   },
+    ]
+  },
+];
+
+const DIFF_CFG = {
+  easy:   { batchSize: 4, time: 0,  emojis: true  },
+  normal: { batchSize: 5, time: 90, emojis: true  },
+  hard:   { batchSize: 5, time: 60, emojis: false },
+};
+
+// ───────────────────────────────────────────────
+// ESTADO
+// ───────────────────────────────────────────────
+const G = {
+  diff:         'easy',
+  phaseIdx:     0,
+  stars:        [0, 0, 0, 0, 0, 0],
+  matched:      0,
+  batchMatched: 0,
+  errors:       0,
+  selEs:        null,
+  selDe:        null,
+  remaining:    [],
+  batch:        [],
+  batchDeMap:   [],   // shuffled DE words for current batch [{word, pairIdx}]
+  timerID:      null,
+  timeLeft:     0,
+};
+
+// ───────────────────────────────────────────────
+// NAVEGACIÓN
+// ───────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function selDiff(d, btn) {
+  G.diff = d;
+  document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+function goPhases() {
+  renderPhaseMap();
+  show('s-phases');
+}
+
+function restartAll() {
+  G.stars = [0, 0, 0, 0, 0, 0];
+  show('s-start');
+}
+
+// ───────────────────────────────────────────────
+// MAPA DE FASES
+// ───────────────────────────────────────────────
+function renderPhaseMap() {
+  const labels = { easy: '🟢 FÁCIL', normal: '🟡 NORMAL', hard: '🔴 DIFÍCIL' };
+  document.getElementById('diff-badge').textContent = labels[G.diff];
+
+  const grid = document.getElementById('phase-grid');
+  grid.innerHTML = '';
+
+  PHASES.forEach((ph, i) => {
+    const unlocked = i === 0 || G.stars[i - 1] > 0;
+    const s = G.stars[i];
+    const card = document.createElement('div');
+    card.className = 'phase-card' + (unlocked ? (s > 0 ? ' completed' : '') : ' locked');
+    card.style.borderColor = ph.color;
+    if (unlocked) card.style.boxShadow = `0 0 12px ${ph.color}33`;
+
+    card.innerHTML = `
+      <span class="phase-emoji">${ph.emoji}</span>
+      <span class="phase-name" style="color:${ph.color}">${ph.name}</span>
+      <div class="phase-stars">${starStr(s)}</div>
+      ${!unlocked ? '<div style="font-size:18px;margin-top:4px">🔒</div>' : ''}
+    `;
+    if (unlocked) card.addEventListener('click', () => startPhase(i));
+    grid.appendChild(card);
+  });
+
+  const total = G.stars.reduce((a, b) => a + b, 0);
+  document.getElementById('total-row').textContent = `⭐ ${total} / 18 estrellas`;
+}
+
+function starStr(n) {
+  return '⭐'.repeat(n) + '☆'.repeat(3 - n);
+}
+
+// ───────────────────────────────────────────────
+// INICIAR FASE
+// ───────────────────────────────────────────────
+function startPhase(idx) {
+  G.phaseIdx     = idx;
+  G.matched      = 0;
+  G.batchMatched = 0;
+  G.errors       = 0;
+  G.selEs        = null;
+  G.selDe        = null;
+  clearInterval(G.timerID);
+
+  const ph  = PHASES[idx];
+  const cfg = DIFF_CFG[G.diff];
+
+  // Preparar pares (quitar emojis si difícil)
+  G.remaining = shuffle(ph.pairs.map((p, i) => ({
+    es:  cfg.emojis ? p.es : stripEmoji(p.es),
+    de:  p.de,
+    idx: i,
+  })));
+
+  // HUD de fase
+  const nameEl = document.getElementById('g-name');
+  nameEl.textContent = ph.name.toUpperCase();
+  nameEl.style.color = ph.color;
+  nameEl.style.textShadow = `0 0 10px ${ph.color}`;
+  document.getElementById('g-emoji').textContent = ph.emoji;
+
+  const fill = document.getElementById('g-progress');
+  fill.style.background = ph.color;
+  fill.style.boxShadow  = `0 0 8px ${ph.color}`;
+  fill.style.width      = '0%';
+
+  document.getElementById('g-matched').textContent = '0/10';
+  document.getElementById('g-errors').textContent  = '0';
+
+  // Timer
+  if (cfg.time > 0) {
+    G.timeLeft = cfg.time;
+    document.getElementById('g-timer-wrap').style.display = '';
+    updateTimer();
+    G.timerID = setInterval(tickTimer, 1000);
+  } else {
+    document.getElementById('g-timer-wrap').style.display = 'none';
+  }
+
+  show('s-game');
+  loadBatch();
+}
+
+// ───────────────────────────────────────────────
+// LOTE DE PARES
+// ───────────────────────────────────────────────
+function loadBatch() {
+  const cfg = DIFF_CFG[G.diff];
+  G.batch        = G.remaining.splice(0, cfg.batchSize);
+  G.batchMatched = 0;
+  G.batchDeMap   = shuffle(G.batch.map((p, i) => ({ word: p.de, pairIdx: i })));
+
+  const colEs = document.getElementById('col-es');
+  const colDe = document.getElementById('col-de');
+  colEs.innerHTML = '<div class="col-head">🇪🇸 ESPAÑOL</div>';
+  colDe.innerHTML = '<div class="col-head">🇩🇪 DEUTSCH</div>';
+
+  G.batch.forEach((pair, i) => {
+    colEs.appendChild(makeBtn(pair.es, 'es', i));
+  });
+  G.batchDeMap.forEach(({ word, pairIdx }) => {
+    colDe.appendChild(makeBtn(word, 'de', pairIdx));
+  });
+}
+
+function makeBtn(text, lang, pairIdx) {
+  const btn = document.createElement('button');
+  btn.className    = 'word-btn';
+  btn.textContent  = text;
+  btn.dataset.lang = lang;
+  btn.dataset.idx  = pairIdx;
+  btn.addEventListener('click', () => onWordClick(btn));
+  return btn;
+}
+
+// ───────────────────────────────────────────────
+// LÓGICA DE EMPAREJAMIENTO
+// ───────────────────────────────────────────────
+function onWordClick(btn) {
+  if (btn.classList.contains('ok') || btn.classList.contains('gone')) return;
+
+  if (btn.dataset.lang === 'es') {
+    if (G.selEs) G.selEs.classList.remove('sel');
+    G.selEs = btn;
+    btn.classList.add('sel');
+  } else {
+    G.selDe = btn;
+  }
+
+  if (G.selEs && G.selDe) checkPair();
+}
+
+function checkPair() {
+  const esIdx = parseInt(G.selEs.dataset.idx);
+  const deIdx = parseInt(G.selDe.dataset.idx);
+  const correct = esIdx === deIdx;
+
+  if (correct) {
+    G.selEs.classList.remove('sel');
+    G.selEs.classList.add('ok');
+    G.selDe.classList.add('ok');
+    G.matched++;
+    G.batchMatched++;
+    updateHUD();
+
+    const esBtn = G.selEs;
+    const deBtn = G.selDe;
+    G.selEs = null;
+    G.selDe = null;
+
+    setTimeout(() => {
+      esBtn.classList.add('gone');
+      deBtn.classList.add('gone');
+
+      if (G.matched === 10) {
+        clearInterval(G.timerID);
+        setTimeout(showResult, 350);
+      } else if (G.batchMatched === G.batch.length) {
+        setTimeout(loadBatch, 300);
+      }
+    }, 480);
+
+  } else {
+    G.selEs.classList.add('bad');
+    G.selDe.classList.add('bad');
+    G.errors++;
+    updateHUD();
+
+    const esBtn = G.selEs;
+    const deBtn = G.selDe;
+    G.selEs = null;
+    G.selDe = null;
+
+    setTimeout(() => {
+      esBtn.classList.remove('sel', 'bad');
+      deBtn.classList.remove('bad');
+    }, 520);
+  }
+}
+
+function updateHUD() {
+  document.getElementById('g-matched').textContent  = `${G.matched}/10`;
+  document.getElementById('g-errors').textContent   = G.errors;
+  document.getElementById('g-progress').style.width = `${G.matched * 10}%`;
+}
+
+// ───────────────────────────────────────────────
+// TIMER
+// ───────────────────────────────────────────────
+function tickTimer() {
+  G.timeLeft--;
+  updateTimer();
+  if (G.timeLeft <= 0) {
+    clearInterval(G.timerID);
+    showResult();
+  }
+}
+
+function updateTimer() {
+  const el = document.getElementById('g-timer');
+  el.textContent = G.timeLeft;
+  el.classList.toggle('warn', G.timeLeft <= 10);
+}
+
+// ───────────────────────────────────────────────
+// RESULTADO DE FASE
+// ───────────────────────────────────────────────
+function showResult() {
+  const ph = PHASES[G.phaseIdx];
+  let s = 3;
+  if (G.errors >= 5 || G.matched < 10) s = 1;
+  else if (G.errors >= 2) s = 2;
+
+  if (s > G.stars[G.phaseIdx]) G.stars[G.phaseIdx] = s;
+
+  document.getElementById('r-emoji').textContent = ph.emoji;
+
+  const titles = ['¡Bien hecho!', '¡Excelente!', '¡PERFECTO! 🎉'];
+  const rTitle = document.getElementById('r-title');
+  rTitle.textContent = titles[s - 1];
+  rTitle.style.color = ph.color;
+  rTitle.style.textShadow = `0 0 14px ${ph.color}`;
+
+  document.getElementById('r-stars').textContent = starStr(s);
+  document.getElementById('r-sub').textContent =
+    `Parejas: ${G.matched}/10  ·  Errores: ${G.errors}`;
+
+  const nextBtn = document.getElementById('r-next');
+  const isLast  = G.phaseIdx === PHASES.length - 1;
+  const allDone = G.stars.every(n => n > 0);
+
+  if (isLast && allDone) {
+    nextBtn.textContent = '🏆 VER RESULTADO FINAL';
+    nextBtn.onclick = showWin;
+  } else if (!isLast) {
+    nextBtn.textContent = 'SIGUIENTE FASE →';
+    nextBtn.onclick = nextPhase;
+    nextBtn.style.display = '';
+  } else {
+    nextBtn.style.display = 'none';
+  }
+
+  show('s-result');
+}
+
+function nextPhase() {
+  const next = G.phaseIdx + 1;
+  if (next < PHASES.length) startPhase(next);
+  else showWin();
+}
+
+function retryPhase() { startPhase(G.phaseIdx); }
+
+// ───────────────────────────────────────────────
+// VICTORIA TOTAL
+// ───────────────────────────────────────────────
+function showWin() {
+  const total = G.stars.reduce((a, b) => a + b, 0);
+  document.getElementById('win-stars').textContent = `⭐ ${total} / 18 estrellas`;
+  show('s-win');
+  confetti();
+}
+
+// ───────────────────────────────────────────────
+// CONFETTI
+// ───────────────────────────────────────────────
+function confetti() {
+  const colors = ['#ffd84d','#4dff91','#ff6e84','#70f0f3','#d77eff','#b8a0fb'];
+  for (let i = 0; i < 70; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    const size = 8 + Math.random() * 10;
+    el.style.cssText = `
+      left:${Math.random() * 100}vw;
+      top:0;
+      width:${size}px;
+      height:${size}px;
+      background:${colors[i % colors.length]};
+      animation-duration:${1.4 + Math.random() * 2}s;
+      animation-delay:${Math.random() * .8}s;
+    `;
+    document.body.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+  }
+}
+
+// ───────────────────────────────────────────────
+// UTILS
+// ───────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function stripEmoji(str) {
+  return str
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+    .replace(/[\u{2600}-\u{27BF}]/gu, '')
+    .replace(/️/g, '')
+    .trim();
+}
+</script>
+</body>
+</html>
